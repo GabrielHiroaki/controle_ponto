@@ -308,7 +308,6 @@
 				funcionarios = funcionarios.map(f => f === antigo ? novo : f);
 				salvarFuncs();
 			
-				// 🔒 COPIA SEGURA DAS CHAVES
 				let chavesAntigas = Object.keys(localStorage)
 					.filter(k => k.startsWith("ponto-" + antigo + "-"));
 			
@@ -316,8 +315,7 @@
 					let novoK = k.replace("ponto-" + antigo + "-", "ponto-" + novo + "-");
 					localStorage.setItem(novoK, localStorage.getItem(k));
 				});
-			
-				// 🔥 REMOVE DEPOIS
+
 				chavesAntigas.forEach(k => localStorage.removeItem(k));
 			
 				// Atualiza UI
@@ -572,7 +570,7 @@
 			let d = Number(tr.children[0].innerText.split("-")[0].trim());
 			
 			let ano = Number(anoSel.value);
-			let mes = Number(mesSel.value); // 0-based
+			let mes = Number(mesSel.value); 
 			let dia = d;
 			
 			let dataStr =
