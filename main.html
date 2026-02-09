@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+	<head>
+		<meta charset="UTF-8">
+		<title>Controle de Ponto</title>
+		<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+		<style>
+			:root {
+			--bg: #0f172a;
+			--card: #111827;
+			--muted: #9ca3af;
+			--text: #e5e7eb;
+			--border: #1f2933;
+			--primary: #6366f1;
+			--primary-hover: #4f46e5;
+			--danger: #ef4444;
+			--success: #22c55e;
+			--info: #38bdf8;
+			--warning: #facc15;
+			}
+			* {
+			box-sizing: border-box;
+			}
+			body {
+			margin: 0;
+			padding: 24px;
+			font-family: "Segoe UI", Roboto, Arial, sans-serif;
+			background: linear-gradient(135deg, #020617, #0f172a);
+			color: var(--text);
+			}
+			.container {
+			max-width: 1500px;
+			margin: auto;
+			background: var(--card);
+			border-radius: 14px;
+			padding: 24px;
+			box-shadow: 0 20px 50px rgba(0,0,0,.35);
+			}
+			h2 {
+			margin: 0 0 16px;
+			text-align: center;
+			font-size: 28px;
+			letter-spacing: 1px;
+			}
+			h3 {
+			margin: 24px 0 10px;
+			font-size: 18px;
+			color: var(--info);
+			display: flex;
+			align-items: center;
+			gap: 8px;
+			}
+			hr {
+			border: none;
+			border-top: 1px solid var(--border);
+			margin: 20px 0;
+			}
+			/* INPUTS & SELECTS */
+			input,
+			select,
+			button {
+			background: #020617;
+			color: var(--text);
+			border: 1px solid var(--border);
+			border-radius: 8px;
+			padding: 8px 10px;
+			font-size: 14px;
+			}
+			input::placeholder {
+			color: #6b7280;
+			}
+			select {
+			cursor: pointer;
+			}
+			button {
+			cursor: pointer;
+			background: var(--primary);
+			border: none;
+			font-weight: 600;
+			transition: 0.2s;
+			}
+			button:hover {
+			background: var(--primary-hover);
+			transform: translateY(-1px);
+			}
+			button:active {
+			transform: translateY(0);
+			}
+			/* BOTÕES DE AÇÃO */
+			button.danger {
+			background: var(--danger);
+			}
+			button.success {
+			background: var(--success);
+			}
+			/* LISTA DE FERIADOS */
+			#listaFeriados {
+			list-style: none;
+			padding: 0;
+			margin: 10px 0 0;
+			}
+			#listaFeriados li {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			padding: 6px 10px;
+			border-radius: 6px;
+			background: #020617;
+			margin-bottom: 6px;
+			font-size: 13px;
+			}
+			#listaFeriados button {
+			background: transparent;
+			color: var(--danger);
+			font-size: 16px;
+			padding: 0 6px;
+			}
+			/* TABELA */
+			table {
+			width: 100%;
+			border-collapse: collapse;
+			margin-top: 16px;
+			font-size: 13px;
+			}
+			thead th {
+			background: #020617;
+			border-bottom: 1px solid var(--border);
+			padding: 8px;
+			text-transform: uppercase;
+			font-size: 11px;
+			color: var(--muted);
+			}
+			tbody td {
+			border-bottom: 1px solid var(--border);
+			padding: 4px;
+			text-align: center;
+			}
+			tbody tr:hover {
+			background: rgba(255,255,255,0.03);
+			}
+			tfoot td {
+			background: #020617;
+			font-weight: bold;
+			padding: 8px;
+			border-top: 2px solid var(--border);
+			}
+			/* INPUTS DE HORA */
+			td input[type="time"],
+			td input[type="text"],
+			td select {
+			width: 100%;
+			min-width: 70px;
+			}
+			/* STATUS VISUAL */
+			.feriado {
+			background: rgba(239, 68, 68, 0.12);
+			}
+			.feriado td:first-child {
+			color: #f87171;
+			font-weight: bold;
+			}
+			.folga,
+			.falta {
+			background: rgba(239, 68, 68, 0.08);
+			}
+			.folga td:first-child,
+			.falta td:first-child {
+			color: #fb7185;
+			font-weight: bold;
+			}
+			.atestado {
+			background: rgba(56, 189, 248, 0.12);
+			}
+			.atestado td:first-child {
+			color: var(--info);
+			font-weight: bold;
+			}
+			/* TOTAL */
+			.total {
+			font-size: 14px;
+			}
+			/* RESPONSIVO */
+			@media (max-width: 1200px) {
+			table {
+			font-size: 11px;
+			}
+			}
+		</style>
+	</head>
+	<body>
+		<div class="container">
+			<h2>Controle de Ponto</h2>
+			<h3>👤 Funcionários</h3>
+			<select id="funcionario"></select>
+			<input id="novoFunc" placeholder="Nome do funcionário">
+			<button onclick="addFuncionario()">Adicionar</button>
+			<button onclick="editarFuncionario()">Editar</button>
+			<button onclick="remFuncionario()">Excluir</button>
+			<hr>
+			<h3>📅 Período</h3>
+			Mês: <select id="mes"></select>
+			Ano: <select id="ano"></select>
+			<hr>
+			<h3>📅 Cadastro de Feriados</h3>
+			<input type="date" id="feriado">
+			<input type="text" id="nomeFeriado" placeholder="Nome do feriado">
+			<button onclick="addFeriado()">Adicionar</button>
+			<ul id="listaFeriados"></ul>
+			<hr>
+			<button onclick="exportarBackup()">📦 Backup</button>
+			<button onclick="importarBackup()">📥 Importar Backup</button>
+			<button onclick="exportarPDF()">📄 PDF</button>
+			<input type="file" id="fileBackup" accept=".json" style="display:none" onchange="lerBackup(this)">
+			<table id="tabelaBox" style="display:none">
+				<thead>
+					<tr>
+						<th>Dia</th>
+						<th>Status</th>
+						<th>Ent. Mad</th>
+						<th>Sai. Mad</th>
+						<th>Entrada</th>
+						<th>Int. Saída</th>
+						<th>Int. Entrada</th>
+						<th>Saída</th>
+						<th>Total</th>
+						<th>50%</th>
+						<th>100%</th>
+						<th>Justificativa</th>
+					</tr>
+				</thead>
+				<tbody id="tabela"></tbody>
+				<tfoot>
+					<tr class="total">
+						<td colspan="8">Totais</td>
+						<td id="tTotal">00:00</td>
+						<td id="t50">00:00</td>
+						<td id="t100">00:00</td>
+					</tr>
+				</tfoot>
+			</table>
+		</div>
+		<script>
+			const diasSemana=["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
+			const funcSel=document.getElementById("funcionario");
+			const mesSel=document.getElementById("mes");
+			const anoSel=document.getElementById("ano");
+			const tabela=document.getElementById("tabela");
+			const tabelaBox=document.getElementById("tabelaBox");
+			
+			
+			/* ========= FERIADOS AUTOMÁTICOS ========= */
+			function feriadosAutomaticos(ano){
+				return [
+					{ data: `${ano}-01-01`, nome: "Confraternização Universal" },
+					{ data: `${ano}-04-21`, nome: "Tiradentes" },
+					{ data: `${ano}-05-01`, nome: "Dia do Trabalho" },
+					{ data: `${ano}-06-13`, nome: "Santo Antônio (Municipal)" },
+					{ data: `${ano}-09-07`, nome: "Independência do Brasil" },
+					{ data: `${ano}-10-12`, nome: "Nossa Senhora Aparecida" },
+					{ data: `${ano}-11-02`, nome: "Finados" },
+					{ data: `${ano}-11-15`, nome: "Proclamação da República" },
+					{ data: `${ano}-12-25`, nome: "Natal" }
+				];
+			}
+			
+			function feriadosDoAnoSelecionado() {
+				const ano = Number(anoSel.value);
+			
+				const automaticos = feriadosAutomaticos(ano);
+			
+				const manuais = feriadosManuais.filter(f =>
+					f.data.startsWith(ano + "-") &&
+					!automaticos.some(a => a.data === f.data)
+				);
+			
+				return [...automaticos, ...manuais];
+			}
+			
+			function zeraTotais(){
+				tTotal.innerText = "00:00";
+				t50.innerText = "00:00";
+				t100.innerText = "00:00";
+			}
+			
+			/* FUNCIONÁRIOS */
+			let funcionarios=JSON.parse(localStorage.getItem("funcs"))||[];
+			function salvarFuncs(){localStorage.setItem("funcs",JSON.stringify(funcionarios));}
+			function carregarFuncs(){
+			    funcSel.innerHTML="<option value=''>Selecione</option>";
+			    funcionarios.forEach(f=>funcSel.innerHTML+=`<option>${f}</option>`);
+			}
+			function addFuncionario(){
+			    let n=novoFunc.value.trim();
+			    if(!n) return;
+			    funcionarios.push(n);
+			    salvarFuncs(); carregarFuncs();
+			    funcSel.value=n; gerarTabela();
+			    novoFunc.value="";
+			}
+			function editarFuncionario(){
+				let antigo = funcSel.value;
+				if(!antigo) return;
+			
+				let novo = prompt("Editar nome do funcionário:", antigo);
+				if(!novo || novo === antigo) return;
+			
+				// Atualiza lista de funcionários
+				funcionarios = funcionarios.map(f => f === antigo ? novo : f);
+				salvarFuncs();
+			
+				// 🔒 COPIA SEGURA DAS CHAVES
+				let chavesAntigas = Object.keys(localStorage)
+					.filter(k => k.startsWith("ponto-" + antigo + "-"));
+			
+				chavesAntigas.forEach(k => {
+					let novoK = k.replace("ponto-" + antigo + "-", "ponto-" + novo + "-");
+					localStorage.setItem(novoK, localStorage.getItem(k));
+				});
+			
+				// 🔥 REMOVE DEPOIS
+				chavesAntigas.forEach(k => localStorage.removeItem(k));
+			
+				// Atualiza UI
+				carregarFuncs();
+				funcSel.value = novo;
+				gerarTabela();
+			}
+			
+			
+			function remFuncionario(){
+			    let f=funcSel.value;
+			    if(!f||!confirm("Excluir empregado?")) return;
+			    funcionarios=funcionarios.filter(x=>x!==f);
+			    salvarFuncs();
+			    Object.keys(localStorage).forEach(k=>k.startsWith("ponto-"+f)&&localStorage.removeItem(k));
+			    carregarFuncs();
+			    tabela.innerHTML="";
+			    tabelaBox.style.display="none";
+			}
+			
+			/* DATAS */
+			for(let m = 0; m < 12; m++){
+				mesSel.innerHTML += `<option value="${m}">${m + 1}</option>`;
+			}
+			
+			// ANOS: de 2026 pra frente
+			let anoInicial = 2025;
+			let anoFinal = new Date().getFullYear() + 10; // gera anos futuros automaticamente
+			
+			for(let a = anoInicial; a <= anoFinal; a++){
+				anoSel.innerHTML += `<option value="${a}">${a}</option>`;
+			}
+			
+			// mês atual
+			mesSel.value = new Date().getMonth();
+			
+			// seleciona o ano atual se existir, senão fica em 2026
+			let anoAtual = new Date().getFullYear();
+			anoSel.value = anoAtual >= anoInicial ? anoAtual : anoInicial;
+			
+			function atualizarTabela() {
+				if (!funcSel.value) {
+					tabelaBox.style.display = "none";
+					return;
+				}
+				gerarTabela();
+			}
+			
+			funcSel.addEventListener("change", atualizarTabela);
+			mesSel.addEventListener("change", atualizarTabela);
+			anoSel.addEventListener("change", () => {
+				atualizarTabela();
+				listarFeriados();
+			});
+			
+			/* FERIADOS */
+			let feriadosManuais = JSON.parse(localStorage.getItem("feriados")) || [];
+			
+			// 🔄 MIGRA feriados antigos (string) para novo formato
+			feriadosManuais = feriadosManuais.map(f => {
+				if (typeof f === "string") {
+					return { data: f, nome: "Feriado" };
+				}
+				return f;
+			});
+			
+			salvarFeriados();
+			
+			function salvarFeriados(){
+				localStorage.setItem("feriados", JSON.stringify(feriadosManuais));
+				listarFeriados();
+			}
+			function addFeriado(){
+				let data = feriado.value;
+				let nome = nomeFeriado.value.trim();
+				if(!data || !nome) return;
+			
+				if (feriadosManuais.some(f => f.data === data)) return;
+			
+				feriadosManuais.push({ data, nome });
+				salvarFeriados();
+				gerarTabela();
+			
+				feriado.value = "";
+				nomeFeriado.value = "";
+			}
+			
+			
+			function listarFeriados() {
+				if (!anoSel || !anoSel.value) return;
+			
+				listaFeriados.innerHTML = "";
+			
+				const feriadosAno = feriadosDoAnoSelecionado();
+			
+				feriadosAno
+					.sort((a, b) => a.data.localeCompare(b.data))
+					.forEach(f => {
+						const ehAutomatico = feriadosAutomaticos(Number(anoSel.value))
+							.some(auto => auto.data === f.data);
+			
+						listaFeriados.innerHTML += `
+							<li>
+								${f.data} – ${f.nome}
+								${!ehAutomatico 
+									? '<button onclick="remF(\'' + f.data + '\')">x</button>' 
+									: ""}
+							</li>
+						`;
+					});
+			}
+			
+			
+			
+			
+			function remF(data) {
+				const ehAutomatico = feriadosAutomaticos(Number(anoSel.value))
+					.some(f => f.data === data);
+			
+				if (ehAutomatico) return; // bloqueia exclusão
+			
+				feriadosManuais = feriadosManuais.filter(f => f.data !== data);
+				salvarFeriados();
+				gerarTabela();
+				listarFeriados();
+			}
+						
+			
+			
+			/* TABELA */
+			function gerarTabela(){
+			if(!funcSel.value){tabelaBox.style.display="none";return;}
+			tabelaBox.style.display="table"; tabela.innerHTML="";
+			let dias=new Date(anoSel.value,Number(mesSel.value)+1,0).getDate();
+			for(let d=1;d<=dias;d++){
+			let data=new Date(anoSel.value,mesSel.value,d);
+			let tr=document.createElement("tr");
+			tr.innerHTML = `
+			<td>${String(d).padStart(2,"0")} - ${diasSemana[data.getDay()]}</td>
+			
+			<td>
+				<select onchange="calc(this)">
+					<option>Normal</option>
+					<option disabled>Feriado</option>
+					<option>Falta</option>
+					<option>Folga</option>
+					<option>Atestado</option>
+				</select>	
+			</td>
+			
+			${campo()}${campo()}${campo()}${campo()}${campo()}${campo()}
+			
+			<td class="tot">00:00</td>
+			<td class="e50">00:00</td>
+			<td class="e100">00:00</td>
+			
+			<td>
+				<input type="text" placeholder="Justificativa" oninput="salvar()">
+			</td>
+			`;
+			
+			
+			tabela.appendChild(tr);
+			}
+			zeraTotais();
+			
+			setTimeout(() => {
+				carregar();
+				soma();
+				marcarFeriados();
+			}, 0);
+			}
+			function marcarFeriados() {
+				document.querySelectorAll("#tabela tr").forEach(tr => {
+					let d = Number(tr.children[0].innerText.split("-")[0].trim());
+			
+					let ano = Number(anoSel.value);
+					let mes = Number(mesSel.value);
+			
+					let dataStr =
+						ano + "-" +
+						String(mes + 1).padStart(2, "0") + "-" +
+						String(d).padStart(2, "0");
+			
+					let feriado = feriadosDoAnoSelecionado().find(f => f.data === dataStr);
+					let selectStatus = tr.children[1].querySelector("select");
+			
+					if (feriado) {
+						tr.classList.add("feriado");
+						tr.title = feriado.nome;
+			
+						// 🔹 Mostra "Feriado" no status, mas NÃO altera cálculo
+						if (selectStatus.value === "Normal") {
+							selectStatus.value = "Feriado";
+						}
+					} else {
+						tr.classList.remove("feriado");
+						tr.removeAttribute("title");
+			
+						// volta pra Normal se não for feriado
+						if (selectStatus.value === "Feriado") {
+							selectStatus.value = "Normal";
+						}
+					}
+				});
+			}
+			
+			function campo(){return `<td><input type="time" onchange="calc(this)"></td>`;}
+			function m(h){if(!h)return null;let[a,b]=h.split(":");return a*60+b*1;}
+			
+			function calc(el){
+			let tr=el.closest("tr");
+			let status=tr.children[1].querySelector("select").value;
+			// REMOVE classes antigas
+			tr.classList.remove("folga", "falta", "atestado");
+			
+			
+			// APLICA cores conforme status
+			if(status === "Folga"){
+				tr.classList.add("folga");
+				zera(tr); 
+				salvar(); 
+				soma(); 
+				return;
+			}
+			
+			if(status === "Falta"){
+				tr.classList.add("falta");
+				zera(tr); 
+				salvar(); 
+				soma(); 
+				return;
+			}
+			if(status === "Atestado"){
+				tr.classList.add("atestado");
+				// continua cálculo normal, não zera
+			}
+			
+			if(status === "Folga" || status === "Falta"){
+				zera(tr);
+				salvar();
+				soma();
+				return;
+			}
+			
+			let i=tr.querySelectorAll("input");
+			let tot=0;
+			if(m(i[0].value)!=null&&m(i[1].value)!=null) tot+=m(i[1].value)-m(i[0].value);
+			if(m(i[2].value)!=null&&m(i[3].value)!=null) tot+=m(i[3].value)-m(i[2].value);
+			if(m(i[4].value)!=null&&m(i[5].value)!=null) tot+=m(i[5].value)-m(i[4].value);
+			
+			let d = Number(tr.children[0].innerText.split("-")[0].trim());
+			
+			let ano = Number(anoSel.value);
+			let mes = Number(mesSel.value); // 0-based
+			let dia = d;
+			
+			let dataStr =
+			    ano + "-" +
+			    String(mes + 1).padStart(2, "0") + "-" +
+			    String(dia).padStart(2, "0");
+			
+			let dow = new Date(ano, mes, dia).getDay();
+			if (status === "Atestado") {
+				let carga = 0;
+			
+				// SEG a SEX → 8h
+				if (dow >= 1 && dow <= 5) carga = 480;
+			
+				// SÁBADO → 4h
+				if (dow === 6) carga = 240;
+			
+				// DOMINGO → 0h
+			
+				tr.querySelector(".tot").innerText = fmt(carga);
+				tr.querySelector(".e50").innerText = "00:00";
+				tr.querySelector(".e100").innerText = "00:00";
+			
+				salvar();
+				soma();
+				return;
+			}
+			let e50 = 0;
+			let e100 = 0;
+			let normal = tot;
+			
+			// DOMINGO → tudo 100%
+			if (dow === 0) {
+			    e100 = tot;
+			    normal = 0;
+			}
+			
+			// FERIADO → tudo 100%
+			else if (feriadosDoAnoSelecionado().some(f => f.data === dataStr)) {
+				e100 = tot;
+				normal = 0;
+			}
+			
+			
+			// SÁBADO → até 4h normal, resto 50%
+			else if (dow === 6) {
+			    if (tot > 240) {
+			        e50 = tot - 240;
+			        normal = 240;
+			    }
+			}
+			
+			// SEGUNDA a SEXTA → até 8h normal, resto 50%
+			else {
+			    if (tot > 480) {
+			        e50 = tot - 480;
+			        normal = 480;
+			    }
+			}
+			
+			tr.querySelector(".tot").innerText = fmt(normal);
+			tr.querySelector(".e50").innerText = fmt(e50);
+			tr.querySelector(".e100").innerText = fmt(e100);
+			
+			salvar(); soma();
+			}
+			function zera(tr){tr.querySelectorAll(".tot,.e50,.e100").forEach(x=>x.innerText="00:00");}
+			function fmt(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
+			
+			/* TOTAIS */
+			function soma(){
+			let t=0,a=0,b=0;
+			document.querySelectorAll(".tot").forEach(x=>{let[h,m]=x.innerText.split(":");t+=h*60+m*1});
+			document.querySelectorAll(".e50").forEach(x=>{let[h,m]=x.innerText.split(":");a+=h*60+m*1});
+			document.querySelectorAll(".e100").forEach(x=>{let[h,m]=x.innerText.split(":");b+=h*60+m*1});
+			tTotal.innerText=fmt(t); t50.innerText=fmt(a); t100.innerText=fmt(b);
+			}
+			
+			/* SALVAR */
+			function chave(){return`ponto-${funcSel.value}-${mesSel.value}-${anoSel.value}`;}
+			function salvar(){
+			let d=[];
+			document.querySelectorAll("#tabela tr").forEach(tr=>{
+			let l=[];
+			tr.querySelectorAll("select,input").forEach(c=>l.push(c.value));
+			d.push(l);
+			});
+			localStorage.setItem(chave(),JSON.stringify(d));
+			}
+			function carregar(){
+			let d=JSON.parse(localStorage.getItem(chave())); if(!d) return;
+			document.querySelectorAll("#tabela tr").forEach((tr,i)=>{
+			tr.querySelectorAll("select,input").forEach((c,j)=>c.value=d[i]?.[j]||"");
+			calc(tr.querySelector("select"));
+			});
+			}
+			
+			/* ================= BACKUP COMPLETO ================= */
+			
+			
+			let pastaBackup = null;
+			
+			// EXPORTAR BACKUP (escolhe pasta)
+			async function exportarBackup(){
+			  try {
+				// escolhe a pasta só na primeira vez
+				if (!pastaBackup) {
+				  pastaBackup = await window.showDirectoryPicker();
+				}
+			
+				// monta o backup do localStorage
+				let backup = {};
+				Object.keys(localStorage).forEach(k => {
+				  backup[k] = localStorage.getItem(k);
+				});
+			
+				const nomeArquivo =
+				  "backup_controle_ponto_" +
+				  new Date().toISOString().slice(0,19).replace(/:/g, "-") +
+				  ".json";
+			
+				const fileHandle = await pastaBackup.getFileHandle(nomeArquivo, {
+				  create: true
+				});
+			
+				const writable = await fileHandle.createWritable();
+				await writable.write(JSON.stringify(backup, null, 2));
+				await writable.close();
+			
+				alert("✅ Backup salvo com sucesso!");
+			  } catch (e) {
+				alert("⚠️ Backup cancelado ou permissão negada.");
+			  }
+			}
+			
+			// IMPORTAR BACKUP
+			function importarBackup(){
+			    document.getElementById("fileBackup").click();
+			}
+			
+			function lerBackup(input){
+			    let file = input.files[0];
+			    if(!file) return;
+			
+			    let reader = new FileReader();
+			    reader.onload = function(e){
+			        if(!confirm("⚠️ Isso vai SUBSTITUIR todos os dados atuais. Continuar?")) return;
+			
+			        let dados = JSON.parse(e.target.result);
+			        localStorage.clear();
+			
+			        Object.keys(dados).forEach(k=>{
+			            localStorage.setItem(k, dados[k]);
+			        });
+			
+			        alert("✅ Backup restaurado com sucesso!");
+			        location.reload();
+			    };
+			    reader.readAsText(file);
+			}
+			function exportarPDF(){
+				soma();
+				
+				const { jsPDF } = window.jspdf;
+				const pdf = new jsPDF("p","mm","a4");
+			
+				let y = 15;
+				let totalAtestados = 0;
+				let totalFaltas = 0; 
+			
+				// TÍTULO
+				pdf.setFontSize(16);
+				pdf.text("FOLHA DE PONTO", 105, y, { align: "center" });
+				y += 10;
+			
+				// DADOS
+				pdf.setFontSize(10);
+				pdf.text(`Funcionário: ${funcSel.value}`, 10, y);
+				pdf.text(
+					`Mês/Ano: ${String(Number(mesSel.value)+1).padStart(2,"0")} / ${anoSel.value}`,
+					150, y
+				);
+				y += 8;
+			
+				// CABEÇALHO DA TABELA
+				pdf.setFontSize(9);
+				pdf.setDrawColor(0);
+				pdf.setLineWidth(0.3);
+			
+				const col = [10, 22, 42, 75, 100, 125, 150, 175];
+				const headers = ["Dia", "Semana", "Status", "Total", "50%", "100%", "Justificativa"];
+			
+			
+				headers.forEach((h,i)=>{
+					pdf.rect(col[i], y, col[i+1] ? col[i+1]-col[i] : 30, 7);
+					pdf.text(h, col[i]+2, y+5);
+				});
+			
+				y += 7;
+			
+				// ================= LINHAS =================
+				document.querySelectorAll("#tabela tr").forEach(tr=>{
+					if(y > 270){
+						pdf.addPage();
+						y = 20;
+					}
+			
+					const diaTxt = tr.children[0].innerText.split("-");
+					const dia = diaTxt[0].trim();
+					const semana = diaTxt[1]?.trim() || "";
+			
+					// STATUS BASE
+					let statusBase = tr.children[1].querySelector("select").value;
+			
+					// CONTA FALTAS
+					if (statusBase === "Falta") totalFaltas++;
+					// CONTA ATESTADOS
+					if (statusBase === "Atestado") totalAtestados++;
+			
+					// DATA DA LINHA
+					let d = Number(dia);
+					let ano = Number(anoSel.value);
+					let mes = Number(mesSel.value);
+			
+					let dataStr =
+						ano + "-" +
+						String(mes + 1).padStart(2, "0") + "-" +
+						String(d).padStart(2, "0");
+			
+					// STATUS FINAL (FERIADO)
+					let status = statusBase;
+					let feriado = feriadosDoAnoSelecionado().find(f => f.data === dataStr);
+					if (feriado && statusBase === "Normal") {
+						status = "Feriado";
+					}
+			
+			
+			
+					const total = tr.querySelector(".tot").innerText;
+					const e50 = tr.querySelector(".e50").innerText;
+					const e100 = tr.querySelector(".e100").innerText;
+			
+					let justificativa = "-";
+					const justificativaInput = tr.querySelector("input[type='text']");
+			
+					if (statusBase === "Atestado" && justificativaInput?.value) {
+						justificativa = justificativaInput.value;
+					}
+			
+					// FERIADO → nome do feriado na justificativa
+					if (feriado) {
+						justificativa = feriado.nome;
+					}
+			
+			
+					const dados = [dia, semana, status, total, e50, e100, justificativa];
+			
+					// === calcula altura da linha (base)
+					let alturaLinha = 6;
+			
+					// se for justificativa, calcula linhas
+					const larguraJust = (col[7] || 200) - col[6] - 4;
+					const textoJust = pdf.splitTextToSize(String(dados[6]), larguraJust);
+					alturaLinha = Math.max(6, textoJust.length * 5);
+			
+					// desenha células
+					dados.forEach((dado, i) => {
+						const largura = (col[i+1] || 200) - col[i] - 4;
+						pdf.rect(col[i], y, largura + 4, alturaLinha);
+			
+						if (i === 6) {
+							pdf.text(textoJust, col[i] + 2, y + 4);
+						} else {
+							pdf.text(String(dado), col[i] + 2, y + 4);
+						}
+					});
+			
+					y += alturaLinha;
+			
+				});
+			
+				// ================= TOTAIS =================
+				y += 8;
+				pdf.setFontSize(10);
+				pdf.text(`Total do mês: ${tTotal.innerText}`, 10, y);
+				y += 6;
+				pdf.text(`Horas Extra 50%: ${t50.innerText}`, 10, y);
+				y += 6;
+				pdf.text(`Horas Extra 100%: ${t100.innerText}`, 10, y);
+				y += 6;
+				pdf.text(`Faltas no mês: ${totalFaltas}`, 10, y);
+				y += 6;
+				pdf.text(`Quantidade de atestados: ${totalAtestados}`, 10, y);
+			
+				// ================= ASSINATURAS =================
+				y += 15;
+				pdf.line(10, y, 90, y);
+				pdf.text("Assinatura do Funcionário", 10, y+5);
+			
+				pdf.line(120, y, 200, y);
+				pdf.text("Assinatura da Empresa", 120, y+5);
+			
+				pdf.save(`Folha_Ponto_${funcSel.value}.pdf`);
+			}
+			
+			carregarFuncs();
+		</script>
+	</body>
+</html>
