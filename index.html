@@ -683,43 +683,37 @@
 			
 			let pastaBackup = null;
 			
-			// EXPORTAR BACKUP (escolhe pasta)
-			async function exportarBackup(){
-			  try {
-				// escolhe a pasta só na primeira vez
-				if (!pastaBackup) {
-				  pastaBackup = await window.showDirectoryPicker();
-				}
-			
-				// monta o backup do localStorage
+			// EXPORTAR BACKUP 
+			function exportarBackup(){
 				let backup = {};
+
 				Object.keys(localStorage).forEach(k => {
-				  backup[k] = localStorage.getItem(k);
+					backup[k] = localStorage.getItem(k);
 				});
-			
-				const nomeArquivo =
-				  "backup_controle_ponto_" +
-				  new Date().toISOString().slice(0,19).replace(/:/g, "-") +
-				  ".json";
-			
-				const fileHandle = await pastaBackup.getFileHandle(nomeArquivo, {
-				  create: true
-				});
-			
-				const writable = await fileHandle.createWritable();
-				await writable.write(JSON.stringify(backup, null, 2));
-				await writable.close();
-			
-				alert("✅ Backup salvo com sucesso!");
-				// salva data e hora do backup
+
+				const data = new Date();
+				const nome =
+					"backup_controle_ponto_" +
+					data.toISOString().slice(0,19).replace(/:/g,"-") +
+					".json";
+
+				const blob = new Blob(
+					[JSON.stringify(backup, null, 2)],
+					{ type: "application/json" }
+				);
+
+				const link = document.createElement("a");
+				link.href = URL.createObjectURL(blob);
+				link.download = nome;
+				link.click();
+
+				// salva data do último backup
 				localStorage.setItem("ultimoBackupHora", new Date().toISOString());
-			
-				// atualiza aviso em tempo real
 				atualizarUltimoBackup();
-			  } catch (e) {
-				alert("⚠️ Backup cancelado ou permissão negada.");
-			  }
+
+				alert("✅ Backup baixado para seu PC!");
 			}
+
 			
 			// IMPORTAR BACKUP
 			function importarBackup(){
