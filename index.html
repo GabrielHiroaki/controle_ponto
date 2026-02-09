@@ -721,25 +721,39 @@
 			}
 			
 			function lerBackup(input){
-			    let file = input.files[0];
-			    if(!file) return;
-			
-			    let reader = new FileReader();
-			    reader.onload = function(e){
-			        if(!confirm("⚠️ Isso vai SUBSTITUIR todos os dados atuais. Continuar?")) return;
-			
-			        let dados = JSON.parse(e.target.result);
-			        localStorage.clear();
-			
-			        Object.keys(dados).forEach(k=>{
-			            localStorage.setItem(k, dados[k]);
-			        });
-			
-			        alert("✅ Backup restaurado com sucesso!");
-			        location.reload();
-			    };
-			    reader.readAsText(file);
+				let file = input.files[0];
+				if(!file) return;
+
+				let reader = new FileReader();
+
+				reader.onload = function(e){
+
+					if(!confirm("⚠️ Isso vai SUBSTITUIR todos os dados atuais. Continuar?")) return;
+
+					let dados = JSON.parse(e.target.result);
+
+					// limpa tudo
+					localStorage.clear();
+
+					// restaura tudo inclusive data do último backup
+					Object.keys(dados).forEach(k=>{
+						localStorage.setItem(k, dados[k]);
+					});
+
+					// se o backup não tiver data de último backup, cria agora
+					if(!localStorage.getItem("ultimoBackupHora")){
+						localStorage.setItem("ultimoBackupHora", new Date().toISOString());
+					}
+
+					atualizarUltimoBackup();
+
+					alert("✅ Backup restaurado com sucesso!");
+					location.reload();
+				};
+
+				reader.readAsText(file);
 			}
+
 			
 			/* ====== AVISO ÚLTIMO BACKUP ====== */
 			
