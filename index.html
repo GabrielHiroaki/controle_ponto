@@ -152,29 +152,41 @@
 			min-width: 70px;
 			}
 			/* STATUS VISUAL */
-			.feriado {
-			background: rgba(239, 68, 68, 0.12);
-			}
-			.feriado td:first-child {
-			color: #f87171;
-			font-weight: bold;
-			}
-			.folga,
-			.falta {
-			background: rgba(239, 68, 68, 0.08);
-			}
-			.folga td:first-child,
-			.falta td:first-child {
-			color: #fb7185;
-			font-weight: bold;
-			}
-			.atestado {
-			background: rgba(56, 189, 248, 0.12);
-			}
-			.atestado td:first-child {
-			color: var(--info);
-			font-weight: bold;
-			}
+            /* 🔴 FALTA */
+            .falta{
+            background: rgba(239, 68, 68, 0.18);
+            }
+            .falta td:first-child{
+            color:#ef4444;
+            font-weight:bold;
+            }
+
+            /* 🟡 FERIADO */
+            .feriado{
+            background: rgba(250, 204, 21, 0.18);
+            }
+            .feriado td:first-child{
+            color:#facc15;
+            font-weight:bold;
+            }
+
+            /* 🟢 FOLGA */
+            .folga{
+            background: rgba(34, 197, 94, 0.18);
+            }
+            .folga td:first-child{
+            color:#22c55e;
+            font-weight:bold;
+            }
+
+            /* 🔵 ATESTADO (mantém) */
+            .atestado{
+            background: rgba(56, 189, 248, 0.12);
+            }
+            .atestado td:first-child{
+            color: var(--info);
+            font-weight:bold;
+            }
 			/* TOTAL */
 			.total {
 			font-size: 14px;
@@ -247,14 +259,48 @@
 				</tfoot>
 			</table>
 		</div>
-		<script>
+        <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs , deleteDoc} 
+        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+        apiKey: "AIzaSyAaPQ7grAhv-FqRwLRCgh-e1hvJAr-PJgY",
+        authDomain: "controle-ponto-6ef9d.firebaseapp.com",
+        projectId: "controle-ponto-6ef9d",
+        storageBucket: "controle-ponto-6ef9d.firebasestorage.app",
+        messagingSenderId: "423575667448",
+        appId: "1:423575667448:web:8f1cbe52b691662b08b10d",
+        measurementId: "G-D4KZZJG5MJ"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        /* 👇 EXPÕE PRO SCRIPT NORMAL */
+        window.db = db;
+        window.doc = doc;
+        window.setDoc = setDoc;
+        window.getDoc = getDoc;
+        window.collection = collection;
+        window.getDocs = getDocs;
+        window.deleteDoc = deleteDoc;
+        </script>
+		<script defer>
 			const diasSemana=["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
 			const funcSel=document.getElementById("funcionario");
 			const mesSel=document.getElementById("mes");
 			const anoSel=document.getElementById("ano");
 			const tabela=document.getElementById("tabela");
-			const tabelaBox=document.getElementById("tabelaBox");
-			
+            const tabelaBox = document.getElementById("tabelaBox");
+            const tTotal = document.getElementById("tTotal");
+            const t50 = document.getElementById("t50");
+            const t100 = document.getElementById("t100");
+            const novoFunc = document.getElementById("novoFunc");
+            const feriado = document.getElementById("feriado");
+            const nomeFeriado = document.getElementById("nomeFeriado");
+            const listaFeriados = document.getElementById("listaFeriados");
+			let timerSalvar;
 			
 			/* ========= FERIADOS AUTOMÁTICOS ========= */
 			function feriadosAutomaticos(ano){
@@ -291,12 +337,21 @@
 			}
 			
 			/* FUNCIONÁRIOS */
-			let funcionarios=JSON.parse(localStorage.getItem("funcs"))||[];
-			function salvarFuncs(){localStorage.setItem("funcs",JSON.stringify(funcionarios));}
-			function carregarFuncs(){
-			    funcSel.innerHTML="<option value=''>Selecione</option>";
-			    funcionarios.forEach(f=>funcSel.innerHTML+=`<option>${f}</option>`);
-			}
+            async function salvarFuncs(){
+            await setDoc(doc(db,"config","funcionarios"),{
+                lista: funcionarios
+            });
+            }
+            async function carregarFuncs(){
+            const snap = await getDoc(doc(db,"config","funcionarios"));
+
+            if(snap.exists()){
+                funcionarios = snap.data().lista || [];
+            }
+
+            funcSel.innerHTML="<option value=''>Selecione</option>";
+            funcionarios.forEach(f=>funcSel.innerHTML+=`<option>${f}</option>`);
+            }
 			function addFuncionario(){
 			    let n=novoFunc.value.trim();
 			    if(!n) return;
@@ -305,46 +360,86 @@
 			    funcSel.value=n; gerarTabela();
 			    novoFunc.value="";
 			}
-			function editarFuncionario(){
-				let antigo = funcSel.value;
-				if(!antigo) return;
-			
-				let novo = prompt("Editar nome do funcionário:", antigo);
-				if(!novo || novo === antigo) return;
-			
-				// Atualiza lista de funcionários
-				funcionarios = funcionarios.map(f => f === antigo ? novo : f);
-				salvarFuncs();
-			
-				// 🔒 COPIA SEGURA DAS CHAVES
-				let chavesAntigas = Object.keys(localStorage)
-					.filter(k => k.startsWith("ponto-" + antigo + "-"));
-			
-				chavesAntigas.forEach(k => {
-					let novoK = k.replace("ponto-" + antigo + "-", "ponto-" + novo + "-");
-					localStorage.setItem(novoK, localStorage.getItem(k));
-				});
-			
-				// 🔥 REMOVE DEPOIS
-				chavesAntigas.forEach(k => localStorage.removeItem(k));
-			
-				// Atualiza UI
-				carregarFuncs();
-				funcSel.value = novo;
-				gerarTabela();
-			}
-			
-			
-			function remFuncionario(){
-			    let f=funcSel.value;
-			    if(!f||!confirm("Excluir empregado?")) return;
-			    funcionarios=funcionarios.filter(x=>x!==f);
-			    salvarFuncs();
-			    Object.keys(localStorage).forEach(k=>k.startsWith("ponto-"+f)&&localStorage.removeItem(k));
-			    carregarFuncs();
-			    tabela.innerHTML="";
-			    tabelaBox.style.display="none";
-			}
+            async function editarFuncionario(){
+
+                let antigo = funcSel.value;
+                if(!antigo) return;
+
+                let novo = prompt("Editar nome do funcionário:", antigo);
+                if(!novo || novo === antigo) return;
+
+                novo = novo.trim();
+
+                // evita duplicado
+                if(funcionarios.includes(novo)){
+                    alert("Já existe funcionário com esse nome!");
+                    return;
+                }
+
+                const pontosSnap = await getDocs(collection(db,"pontos"));
+
+                for(const docu of pontosSnap.docs){
+
+                    const id = docu.id;
+
+                    if(id.startsWith(antigo + "_")){
+
+                        const dados = docu.data();
+
+                        const novoId = id.replace(antigo + "_", novo + "_");
+
+                        // atualiza o nome dentro do documento
+                        dados.funcionario = novo;
+
+                        // cria novo documento
+                        await setDoc(doc(db,"pontos", novoId), dados);
+
+                        await deleteDoc(doc(db,"pontos", id));
+                    }
+                }
+
+                // atualiza lista local
+                funcionarios = funcionarios.map(f => f === antigo ? novo : f);
+                await salvarFuncs();
+
+                // recarrega tudo corretamente
+                await carregarFuncs();
+
+                funcSel.value = novo;
+
+                gerarTabela();
+                await carregar(); 
+
+                alert("Funcionário atualizado com sucesso!");
+            }
+
+
+            async function remFuncionario(){
+                let f = funcSel.value;
+                if(!f) return;
+
+                if(!confirm("⚠️ Isso vai apagar TODOS os registros desse funcionário. Continuar?")) return;
+
+                // 🗑 APAGA TODOS OS PONTOS DO FUNCIONÁRIO
+                const pontosSnap = await getDocs(collection(db,"pontos"));
+
+                for(const docu of pontosSnap.docs){
+                    if(docu.id.startsWith(f + "_")){
+                        await deleteDoc(doc(db,"pontos", docu.id));
+                    }
+                }
+
+                // 👤 REMOVE DA LISTA
+                funcionarios = funcionarios.filter(x => x !== f);
+                await salvarFuncs();
+                await carregarFuncs();
+
+                tabela.innerHTML="";
+                tabelaBox.style.display="none";
+
+                alert("✅ Funcionário e todos os pontos apagados!");
+            }
+
 			
 			/* DATAS */
 			for(let m = 0; m < 12; m++){
@@ -366,13 +461,18 @@
 			let anoAtual = new Date().getFullYear();
 			anoSel.value = anoAtual >= anoInicial ? anoAtual : anoInicial;
 			
-			function atualizarTabela() {
-				if (!funcSel.value) {
-					tabelaBox.style.display = "none";
-					return;
-				}
-				gerarTabela();
-			}
+            async function atualizarTabela() {
+                if (!funcSel.value) {
+                    tabelaBox.style.display = "none";
+                    return;
+                }
+
+                gerarTabela();
+                await carregar();
+                marcarFeriados();
+                soma();
+            }
+
 			
 			funcSel.addEventListener("change", atualizarTabela);
 			mesSel.addEventListener("change", atualizarTabela);
@@ -382,22 +482,25 @@
 			});
 			
 			/* FERIADOS */
-			let feriadosManuais = JSON.parse(localStorage.getItem("feriados")) || [];
+            let funcionarios = [];
+            let feriadosManuais = [];
 			
-			// 🔄 MIGRA feriados antigos (string) para novo formato
-			feriadosManuais = feriadosManuais.map(f => {
-				if (typeof f === "string") {
-					return { data: f, nome: "Feriado" };
-				}
-				return f;
-			});
-			
-			salvarFeriados();
-			
-			function salvarFeriados(){
-				localStorage.setItem("feriados", JSON.stringify(feriadosManuais));
-				listarFeriados();
-			}
+            async function salvarFeriados(){
+                const refFeriados = doc(db,"config","feriados");
+                const snapFeriados = await getDoc(refFeriados);
+
+                let feriadosBase = [];
+
+                if(snapFeriados.exists()){
+                    const data = snapFeriados.data();
+                    if(Array.isArray(data)) feriadosBase = data;
+                    if(Array.isArray(data?.lista)) feriadosBase = data.lista;
+                }
+
+                const feriadosFinal = [...new Set([...feriadosBase, ...feriados])];
+
+                await setDoc(refFeriados, feriadosFinal);
+            }
 			function addFeriado(){
 				let data = feriado.value;
 				let nome = nomeFeriado.value.trim();
@@ -407,12 +510,18 @@
 			
 				feriadosManuais.push({ data, nome });
 				salvarFeriados();
+                listarFeriados();
 				gerarTabela();
 			
 				feriado.value = "";
 				nomeFeriado.value = "";
 			}
-			
+            async function carregarFeriados(){
+            const snap = await getDoc(doc(db,"config","feriados"));
+            if(snap.exists()){
+                feriadosManuais = snap.data().lista || [];
+            }
+            }
 			
 			function listarFeriados() {
 				if (!anoSel || !anoSel.value) return;
@@ -458,7 +567,7 @@
 			/* TABELA */
 			function gerarTabela(){
 			if(!funcSel.value){tabelaBox.style.display="none";return;}
-			tabelaBox.style.display="table"; tabela.innerHTML="";
+			tabelaBox.style.display="block"; tabela.innerHTML="";
 			let dias=new Date(anoSel.value,Number(mesSel.value)+1,0).getDate();
 			for(let d=1;d<=dias;d++){
 			let data=new Date(anoSel.value,mesSel.value,d);
@@ -469,7 +578,7 @@
 			<td>
 				<select onchange="calc(this)">
 					<option>Normal</option>
-					<option disabled>Feriado</option>
+					<option>Feriado</option>
 					<option>Falta</option>
 					<option>Folga</option>
 					<option>Atestado</option>
@@ -492,11 +601,6 @@
 			}
 			zeraTotais();
 			
-			setTimeout(() => {
-				carregar();
-				soma();
-				marcarFeriados();
-			}, 0);
 			}
 			function marcarFeriados() {
 				document.querySelectorAll("#tabela tr").forEach(tr => {
@@ -540,14 +644,15 @@
 			let tr=el.closest("tr");
 			let status=tr.children[1].querySelector("select").value;
 			// REMOVE classes antigas
-			tr.classList.remove("folga", "falta", "atestado");
+			tr.classList.remove("folga", "falta", "atestado", "feriado");
 			
 			
 			// APLICA cores conforme status
 			if(status === "Folga"){
 				tr.classList.add("folga");
 				zera(tr); 
-				salvar(); 
+                clearTimeout(timerSalvar);
+                timerSalvar = setTimeout(salvar, 400);
 				soma(); 
 				return;
 			}
@@ -555,7 +660,8 @@
 			if(status === "Falta"){
 				tr.classList.add("falta");
 				zera(tr); 
-				salvar(); 
+                clearTimeout(timerSalvar);
+                timerSalvar = setTimeout(salvar, 400);
 				soma(); 
 				return;
 			}
@@ -566,16 +672,33 @@
 			
 			if(status === "Folga" || status === "Falta"){
 				zera(tr);
-				salvar();
+                clearTimeout(timerSalvar);
+                timerSalvar = setTimeout(salvar, 400);
 				soma();
 				return;
 			}
+
+            if(status === "Feriado"){
+                tr.classList.add("feriado");
+            }
 			
-			let i=tr.querySelectorAll("input");
-			let tot=0;
-			if(m(i[0].value)!=null&&m(i[1].value)!=null) tot+=m(i[1].value)-m(i[0].value);
-			if(m(i[2].value)!=null&&m(i[3].value)!=null) tot+=m(i[3].value)-m(i[2].value);
-			if(m(i[4].value)!=null&&m(i[5].value)!=null) tot+=m(i[5].value)-m(i[4].value);
+            let inputs = tr.querySelectorAll("input[type='time']");
+
+            // pega todas batidas preenchidas
+            let batidas = [...inputs]
+                .map(i => i.value)
+                .filter(v => v && v.includes(":"))
+                .sort((a,b)=>a.localeCompare(b));
+
+            let tot = 0;
+
+            // soma em pares cronológicos
+            for(let x=0; x<batidas.length; x+=2){
+                if(batidas[x+1]){
+                    tot += m(batidas[x+1]) - m(batidas[x]);
+                }
+            }
+
 			
 			let d = Number(tr.children[0].innerText.split("-")[0].trim());
 			
@@ -604,7 +727,8 @@
 				tr.querySelector(".e50").innerText = "00:00";
 				tr.querySelector(".e100").innerText = "00:00";
 			
-				salvar();
+                clearTimeout(timerSalvar);
+                timerSalvar = setTimeout(salvar, 400);
 				soma();
 				return;
 			}
@@ -645,7 +769,9 @@
 			tr.querySelector(".e50").innerText = fmt(e50);
 			tr.querySelector(".e100").innerText = fmt(e100);
 			
-			salvar(); soma();
+            clearTimeout(timerSalvar);
+            timerSalvar = setTimeout(salvar, 400);
+            soma();
 			}
 			function zera(tr){tr.querySelectorAll(".tot,.e50,.e100").forEach(x=>x.innerText="00:00");}
 			function fmt(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
@@ -660,124 +786,351 @@
 			}
 			
 			/* SALVAR */
-			function chave(){return`ponto-${funcSel.value}-${mesSel.value}-${anoSel.value}`;}
-			function salvar(){
-			let d=[];
-			document.querySelectorAll("#tabela tr").forEach(tr=>{
-			let l=[];
-			tr.querySelectorAll("select,input").forEach(c=>l.push(c.value));
-			d.push(l);
-			});
-			localStorage.setItem(chave(),JSON.stringify(d));
-			}
-			function carregar(){
-			let d=JSON.parse(localStorage.getItem(chave())); if(!d) return;
-			document.querySelectorAll("#tabela tr").forEach((tr,i)=>{
-			tr.querySelectorAll("select,input").forEach((c,j)=>c.value=d[i]?.[j]||"");
-			calc(tr.querySelector("select"));
-			});
-			}
-			
-			/* ================= BACKUP COMPLETO ================= */
-			
-			
-			let pastaBackup = null;
-			
-			// EXPORTAR BACKUP 
-			function exportarBackup(){
-				let backup = {};
+            async function salvar(){
+            if(!document.querySelector("#tabela tr")) return;
+            if(!funcSel.value) return;
 
-				Object.keys(localStorage).forEach(k => {
-					backup[k] = localStorage.getItem(k);
-				});
+            let dados = [];
 
-				const data = new Date();
-				const nome =
-					"backup_controle_ponto_" +
-					data.toISOString().slice(0,19).replace(/:/g,"-") +
-					".json";
+            document.querySelectorAll("#tabela tr").forEach(tr => {
+                const h = tr.querySelectorAll("input[type='time']");
+                const status = tr.querySelector("select")?.value || "";
+                const justificativa = tr.querySelector("input[type='text']")?.value || "";
 
-				const blob = new Blob(
-					[JSON.stringify(backup, null, 2)],
-					{ type: "application/json" }
-				);
+                dados.push({
+                    entManha: h[0]?.value || "",
+                    saiManha: h[1]?.value || "",
+                    entrada:  h[2]?.value || "",
+                    intSaida: h[3]?.value || "",
+                    intEntrada: h[4]?.value || "",
+                    saida:    h[5]?.value || "",
+                    status: status,
+                    justificativa: justificativa
+                });
+            });
+            const ref = doc(db,"pontos",`${funcSel.value}_${mesSel.value}_${anoSel.value}`);
 
-				const link = document.createElement("a");
-				link.href = URL.createObjectURL(blob);
-				link.download = nome;
-				link.click();
+            try {
+                await setDoc(ref, {
+                    funcionario: funcSel.value,
+                    mes: mesSel.value,
+                    ano: anoSel.value,
+                    dados: dados,
+                    atualizado: Date.now()
+                }, {
+                    merge: true
+                });
+            } catch (e) {
+                console.error("Erro ao salvar no Firebase:", e);
+            }
 
-				// salva data do último backup
-				localStorage.setItem("ultimoBackupHora", new Date().toISOString());
-				atualizarUltimoBackup();
+            }
+            async function carregar(){
+                if(!funcSel.value) return;
 
-				alert("✅ Backup baixado para seu PC!");
-			}
+                const ref = doc(db,"pontos",`${funcSel.value}_${mesSel.value}_${anoSel.value}`);
+                const snap = await getDoc(ref);
 
-			
-			// IMPORTAR BACKUP
-			function importarBackup(){
-			    document.getElementById("fileBackup").click();
-			}
-			
-			function lerBackup(input){
-				let file = input.files[0];
-				if(!file) return;
+                if(!snap.exists()) return;
 
-				let reader = new FileReader();
+                const dados = snap.data().dados || [];
 
-				reader.onload = function(e){
+                document.querySelectorAll("#tabela tr").forEach((tr,i)=>{
+                    if(!dados[i]) return;
 
-					if(!confirm("⚠️ Isso vai SUBSTITUIR todos os dados atuais. Continuar?")) return;
+                    const horas = tr.querySelectorAll("input[type='time']");
+                    const statusSel = tr.querySelector("select");
+                    const justificativa = tr.querySelector("input[type='text']");
 
-					let dados = JSON.parse(e.target.result);
+                    let h0 = dados[i].entManha || "";
+                    let h1 = dados[i].saiManha || "";
+                    let h2 = dados[i].entrada || "";
+                    let h3 = dados[i].intSaida || "";
+                    let h4 = dados[i].intEntrada || "";
+                    let h5 = dados[i].saida || "";
 
-					// limpa tudo
-					localStorage.clear();
+                    statusSel.value = dados[i].status || "Normal";
+                    justificativa.value = dados[i].justificativa || "";
 
-					// restaura tudo inclusive data do último backup
-					Object.keys(dados).forEach(k=>{
-						localStorage.setItem(k, dados[k]);
-					});
+                    // NÃO reorganizar mais — respeitar exatamente o salvo
+                    horas[0].value = h0;
+                    horas[1].value = h1;
+                    horas[2].value = h2;
+                    horas[3].value = h3;
+                    horas[4].value = h4;
+                    horas[5].value = h5;
 
-					// se o backup não tiver data de último backup, cria agora
-					if(!localStorage.getItem("ultimoBackupHora")){
-						localStorage.setItem("ultimoBackupHora", new Date().toISOString());
-					}
+                    calc(statusSel);
+                });
+            }
 
-					atualizarUltimoBackup();
 
-					alert("✅ Backup restaurado com sucesso!");
-					location.reload();
-				};
-
-				reader.readAsText(file);
-			}
 
 			
+            /* ================= BACKUP FIREBASE COMPLETO ================= */
+
+            async function exportarBackup(){
+
+                const backup = {
+                    funcionarios: [],
+                    feriados: [],
+                    pontos: []
+                };
+
+                // FUNCIONÁRIOS
+                const funcsSnap = await getDoc(doc(db,"config","funcionarios"));
+                if(funcsSnap.exists()){
+                    backup.funcionarios = funcsSnap.data().lista || [];
+                }
+
+                // FERIADOS
+                const ferSnap = await getDoc(doc(db,"config","feriados"));
+                if(ferSnap.exists()){
+                    backup.feriados = ferSnap.data().lista || [];
+                }
+
+                // TODOS OS REGISTROS DE PONTO
+                const pontosSnap = await getDocs(collection(db,"pontos"));
+
+                pontosSnap.forEach(docu=>{
+                    backup.pontos.push({
+                        id: docu.id,
+                        ...docu.data()
+                    });
+                });
+
+                // GERAR ARQUIVO
+                const data = new Date().toISOString().replace(/:/g,"-");
+
+                const blob = new Blob(
+                    [JSON.stringify(backup,null,2)],
+                    { type:"application/json" }
+                );
+
+                const link = document.createElement("a");
+                link.href = URL.createObjectURL(blob);
+                link.download = `backup_controle_ponto_${data}.json`;
+                link.click();
+
+                localStorage.setItem("ultimoBackupHora", new Date().toISOString());
+                atualizarUltimoBackup();
+
+                alert("✅ Backup completo do Firebase gerado!");
+            }
+
+
+            /* ========= IMPORTAR ========= */
+            async function importarBackup(){
+                document.getElementById("fileBackup").click();
+            }
+            async function lerBackup(input){
+
+                const file = input.files[0];
+                if(!file) return;
+
+                let backup;
+                try{
+                    backup = JSON.parse(await file.text());
+                }catch{
+                    alert("Arquivo inválido");
+                    return;
+                }
+
+                let funcionarios = [];
+                let feriados = [];
+                let pontos = [];
+
+                /* ======================
+                FORMATO NOVO
+                ====================== */
+                if(Array.isArray(backup.funcionarios) &&
+                Array.isArray(backup.feriados) &&
+                Array.isArray(backup.pontos)){
+
+                    funcionarios = backup.funcionarios;
+                    feriados = backup.feriados;
+                    pontos = backup.pontos;
+                }
+
+                /* ======================
+                FORMATO ANTIGO
+                ====================== */
+                else{
+
+                    if(backup.funcs)
+                        funcionarios = JSON.parse(backup.funcs);
+
+                    if(backup.feriados)
+                        feriados = JSON.parse(backup.feriados);
+
+                    Object.keys(backup).forEach(k=>{
+
+                        if(!k.startsWith("ponto-")) return;
+
+                        const bruto = JSON.parse(backup[k]);
+
+                        const dadosConvertidos = bruto.map(linha=>{
+
+                            if(!Array.isArray(linha)){
+                                return {
+                                    entManha:"", saiManha:"",
+                                    entrada:"", intSaida:"",
+                                    intEntrada:"", saida:"",
+                                    status:"Normal", justificativa:""
+                                };
+                            }
+
+                            /* ===================================================
+                            CONVERSÃO REAL DO SISTEMA ANTIGO (POSICIONAL)
+                            =================================================== */
+
+                            // copia exatamente cada coluna
+                            let entManha   = linha[1] || "";
+                            let saiManha   = linha[2] || "";
+                            let entrada    = linha[3] || "";
+                            let intSaida   = linha[4] || "";
+                            let intEntrada = linha[5] || "";
+                            let saida      = linha[6] || "";
+
+                            // pega todos horários válidos apenas para detectar turno simples
+                            const horarios = [entManha,saiManha,entrada,intSaida,intEntrada,saida]
+                                .filter(v => typeof v === "string" && v.includes(":"))
+                                .sort((a,b)=>a.localeCompare(b));
+
+                            /*
+                            REGRA DO SISTEMA ANTIGO:
+
+                            quando só existiam 2 horários
+                            ele podia salvar em qualquer coluna
+
+                            então movemos para ENTRADA/SAIDA
+                            */
+
+                            if(horarios.length === 2){
+                                entManha="";
+                                saiManha="";
+                                entrada=horarios[0];
+                                intSaida="";
+                                intEntrada="";
+                                saida=horarios[1];
+                            }
+
+                            return {
+                                entManha,
+                                saiManha,
+                                entrada,
+                                intSaida,
+                                intEntrada,
+                                saida,
+                                status: linha[0] || "Normal",
+                                justificativa: linha[7] || ""
+                            };
+                        });
+
+
+                        const nome = k.split("-")[1];
+                        let mesRaw = Number(k.split("-")[2]);
+                        const ano  = String(k.split("-")[3]);
+
+                        // normaliza mês (aceita 0-11 ou 1-12)
+                        let mes;
+                        if(mesRaw >= 1 && mesRaw <= 12)
+                            mes = mesRaw - 1;   
+                        else
+                            mes = mesRaw;      
+
+                        mes = String(mes);
+
+                        pontos.push({
+                            id: `${nome}_${mes}_${ano}`,
+                            funcionario: nome,
+                            mes: mes,
+                            ano: ano,
+                            dados: dadosConvertidos,
+                            atualizado: Date.now()
+                        });
+                    });
+                }
+
+                if(!confirm("⚠️ Isso vai substituir TODOS os dados. Continuar?")) return;
+
+                /* ======================
+                SALVAR FIREBASE
+                ====================== */
+
+                await setDoc(doc(db,"config","funcionarios"),{
+                    lista: funcionarios
+                });
+
+                await setDoc(doc(db,"config","feriados"),{
+                    lista: feriados.map(f => ({
+                        data: f.data || f,
+                        nome: f.nome || "Importado"
+                    }))
+                });
+
+                let primeiroMes=null;
+                let primeiroAno=null;
+                let primeiroFunc=null;
+
+                for(const item of pontos){
+
+                    const diasNoMes = new Date(item.ano, Number(item.mes)+1, 0).getDate();
+
+                    const registro = {
+                        funcionario: item.funcionario,
+                        mes: String(item.mes),
+                        ano: String(item.ano),
+                        dados: (Array.isArray(item.dados)?item.dados:[]).slice(0,diasNoMes),
+                        atualizado: Date.now()
+                    };
+
+                    await setDoc(doc(db,"pontos",item.id),registro);
+
+                    if(!primeiroMes){
+                        primeiroMes=item.mes;
+                        primeiroAno=item.ano;
+                        primeiroFunc=item.funcionario;
+                    }
+                }
+
+                localStorage.setItem("ultimoBackupHora", new Date().toISOString());
+                atualizarUltimoBackup();
+
+                alert("✅ Backup restaurado com sucesso!");
+
+                localStorage.setItem("abrirMes",primeiroMes);
+                localStorage.setItem("abrirAno",primeiroAno);
+                localStorage.setItem("abrirFunc",primeiroFunc);
+
+                location.reload();
+            }
+
 			/* ====== AVISO ÚLTIMO BACKUP ====== */
 			
-			function atualizarUltimoBackup(){
-				let data = localStorage.getItem("ultimoBackupHora");
-			
-				if(!data){
-					document.getElementById("ultimoBackup").innerText =
-						"📦 Último backup: nunca realizado";
-					return;
-				}
-			
-				let d = new Date(data);
-			
-				let formatado =
-					String(d.getDate()).padStart(2,"0") + "/" +
-					String(d.getMonth()+1).padStart(2,"0") + "/" +
-					d.getFullYear() + " " +
-					String(d.getHours()).padStart(2,"0") + ":" +
-					String(d.getMinutes()).padStart(2,"0");
-			
-				document.getElementById("ultimoBackup").innerText =
-					"📦 Último backup: " + formatado;
-			}
+            function atualizarUltimoBackup(){
+                let data = localStorage.getItem("ultimoBackupHora");
+
+                if(!data){
+                    document.getElementById("ultimoBackup").innerText =
+                        "📦 Último backup: nunca realizado";
+                    return;
+                }
+
+                let d = new Date(data);
+
+                let formatado =
+                    String(d.getDate()).padStart(2,"0") + "/" +
+                    String(d.getMonth()+1).padStart(2,"0") + "/" +
+                    d.getFullYear() + " às " +
+                    String(d.getHours()).padStart(2,"0") + ":" +
+                    String(d.getMinutes()).padStart(2,"0");
+
+                document.getElementById("ultimoBackup").innerText =
+                    "📦 Último backup: " + formatado;
+            }
+
+
 			
 			/* chama ao abrir sistema */
 			atualizarUltimoBackup();
@@ -857,8 +1210,6 @@
 						status = "Feriado";
 					}
 			
-			
-			
 					const total = tr.querySelector(".tot").innerText;
 					const e50 = tr.querySelector(".e50").innerText;
 					const e100 = tr.querySelector(".e100").innerText;
@@ -926,7 +1277,37 @@
 				pdf.save(`Folha_Ponto_${funcSel.value}.pdf`);
 			}
 			
-			carregarFuncs();
+            async function iniciarSistema(){
+                await carregarFeriados();
+                await carregarFuncs();
+                listarFeriados();
+
+                const abrirMes = localStorage.getItem("abrirMes");
+                const abrirAno = localStorage.getItem("abrirAno");
+                const abrirFunc = localStorage.getItem("abrirFunc");
+
+                if(abrirMes && abrirAno && abrirFunc){
+
+                    mesSel.value = abrirMes;
+                    anoSel.value = abrirAno;
+                    funcSel.value = abrirFunc;
+
+                    localStorage.removeItem("abrirMes");
+                    localStorage.removeItem("abrirAno");
+                    localStorage.removeItem("abrirFunc");
+
+                    atualizarTabela();
+                    return;
+                }
+
+                if(funcSel.options.length > 1){
+                    funcSel.selectedIndex = 1;
+                    atualizarTabela();
+                }
+            }
+
+            window.addEventListener("load", atualizarUltimoBackup);
+            window.addEventListener("load", iniciarSistema);
 		</script>
 	</body>
 </html>
