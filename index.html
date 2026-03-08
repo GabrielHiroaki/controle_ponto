@@ -575,7 +575,7 @@
 			<td>
 				<select onchange="calc(this)">
 					<option>Normal</option>
-					<option disabled>Feriado</option>
+					<option>Feriado</option>
 					<option>Falta</option>
 					<option>Folga</option>
 					<option>Atestado</option>
@@ -740,9 +740,12 @@
 			}
 			
 			// FERIADO → tudo 100%
-			else if (feriadosDoAnoSelecionado().some(f => f.data === dataStr)) {
-				e100 = tot;
-				normal = 0;
+			else if (
+			    status === "Feriado" ||
+			    feriadosDoAnoSelecionado().some(f => f.data === dataStr)
+			){
+			    e100 = tot;
+			    normal = 0;
 			}
 			
 			
