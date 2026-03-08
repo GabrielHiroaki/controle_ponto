@@ -485,36 +485,30 @@
             let funcionarios = [];
             let feriadosManuais = [];
 			
-            async function salvarFeriados(){
-                const refFeriados = doc(db,"config","feriados");
-                const snapFeriados = await getDoc(refFeriados);
+			async function salvarFeriados(){
+				await setDoc(doc(db,"config","feriados"),{
+					lista: feriadosManuais
+				});
+			}
+			async function addFeriado(){
 
-                let feriadosBase = [];
-
-                if(snapFeriados.exists()){
-                    const data = snapFeriados.data();
-                    if(Array.isArray(data)) feriadosBase = data;
-                    if(Array.isArray(data?.lista)) feriadosBase = data.lista;
-                }
-
-                const feriadosFinal = [...new Set([...feriadosBase, ...feriados])];
-
-                await setDoc(refFeriados, feriadosFinal);
-            }
-			function addFeriado(){
 				let data = feriado.value;
 				let nome = nomeFeriado.value.trim();
+
 				if(!data || !nome) return;
-			
-				if (feriadosManuais.some(f => f.data === data)) return;
-			
+
+				if(feriadosManuais.some(f => f.data === data)) return;
+
 				feriadosManuais.push({ data, nome });
-				salvarFeriados();
-                listarFeriados();
-				gerarTabela();
-			
-				feriado.value = "";
-				nomeFeriado.value = "";
+
+				await salvarFeriados();
+
+				listarFeriados();
+				
+				await atualizarTabela();
+
+				feriado.value="";
+				nomeFeriado.value="";
 			}
             async function carregarFeriados(){
             const snap = await getDoc(doc(db,"config","feriados"));
@@ -547,19 +541,20 @@
 					});
 			}
 			
-			
-			
-			
-			function remF(data) {
+			async function remF(data){
+
 				const ehAutomatico = feriadosAutomaticos(Number(anoSel.value))
 					.some(f => f.data === data);
-			
-				if (ehAutomatico) return; // bloqueia exclusão
-			
+
+				if(ehAutomatico) return;
+
 				feriadosManuais = feriadosManuais.filter(f => f.data !== data);
-				salvarFeriados();
-				gerarTabela();
+
+				await salvarFeriados();
+
 				listarFeriados();
+				
+				await atualizarTabela();
 			}
 						
 			
