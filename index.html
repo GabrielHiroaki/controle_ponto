@@ -504,12 +504,14 @@
 				await salvarFeriados();
 
 				listarFeriados();
-				
 				await atualizarTabela();
 
 				feriado.value="";
 				nomeFeriado.value="";
 			}
+
+			window.addFeriado = addFeriado;
+			window.remF = remF;
             async function carregarFeriados(){
             const snap = await getDoc(doc(db,"config","feriados"));
             if(snap.exists()){
@@ -553,7 +555,7 @@
 				await salvarFeriados();
 
 				listarFeriados();
-				
+
 				await atualizarTabela();
 			}
 						
@@ -1273,9 +1275,10 @@
 			}
 			
             async function iniciarSistema(){
-                await carregarFeriados();
-                await carregarFuncs();
-                listarFeriados();
+				await carregarFeriados();
+				await carregarFuncs();
+				listarFeriados();
+				marcarFeriados();
 
                 const abrirMes = localStorage.getItem("abrirMes");
                 const abrirAno = localStorage.getItem("abrirAno");
