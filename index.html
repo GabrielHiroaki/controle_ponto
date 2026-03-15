@@ -1214,6 +1214,7 @@
 				
 				const { jsPDF } = window.jspdf;
 				const pdf = new jsPDF("p","mm","a4");
+				alert(document.getElementById("observacao").value);
 				const observacao = document.getElementById("observacao").value.trim();
 			
 				let y = 15;
@@ -1360,8 +1361,10 @@
 
 					pdf.setFontSize(10);
 
+					let textoObs = observacao || "-";
+
 					const largura = 180;
-					const linhas = pdf.splitTextToSize(observacao, largura);
+					const linhas = pdf.splitTextToSize(textoObs, largura);
 
 					pdf.text(linhas, 10, y);
 
