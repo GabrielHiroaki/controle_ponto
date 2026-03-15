@@ -1344,32 +1344,29 @@
 				pdf.text(`Quantidade de atestados: ${totalAtestados}`, 10, y);
 			
 				// ================= OBSERVAÇÃO =================
-				if(observacao){
 
-					// se estiver no final da página cria nova página
-					if(y > 250){
-						pdf.addPage();
-						y = 20;
-					}
-
-					y += 10;
-
-					pdf.setFontSize(11);
-					pdf.text("Observação:", 10, y);
-
-					y += 6;
-
-					pdf.setFontSize(10);
-
-					let textoObs = observacao || "-";
-
-					const largura = 180;
-					const linhas = pdf.splitTextToSize(textoObs, largura);
-
-					pdf.text(linhas, 10, y);
-
-					y += linhas.length * 5;
+				if(y > 250){
+					pdf.addPage();
+					y = 20;
 				}
+
+				y += 10;
+
+				pdf.setFontSize(11);
+				pdf.text("Observação:", 10, y);
+
+				y += 6;
+
+				pdf.setFontSize(10);
+
+				const textoObs = observacao && observacao.trim() !== "" ? observacao : "-";
+
+				const largura = 180;
+				const linhas = pdf.splitTextToSize(textoObs, largura);
+
+				pdf.text(linhas, 10, y);
+
+				y += linhas.length * 5;
 
 				// ================= ASSINATURAS =================
 				y += 15;
