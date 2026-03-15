@@ -718,7 +718,8 @@
 				// SÁBADO → 4h
 				if (dow === 6) carga = 240;
 			
-				// DOMINGO → 0h
+				// DOMINGO → 4h
+				if (dow === 0) carga = 240;
 			
 				tr.querySelector(".tot").innerText = fmt(carga);
 				tr.querySelector(".e50").innerText = "00:00";
