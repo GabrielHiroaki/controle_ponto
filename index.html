@@ -1214,6 +1214,7 @@
 				
 				const { jsPDF } = window.jspdf;
 				const pdf = new jsPDF("p","mm","a4");
+				const observacao = document.getElementById("observacao").value.trim();
 			
 				let y = 15;
 				let totalAtestados = 0;
@@ -1341,6 +1342,26 @@
 				y += 6;
 				pdf.text(`Quantidade de atestados: ${totalAtestados}`, 10, y);
 			
+				// ================= OBSERVAÇÃO =================
+				if(observacao){
+
+					y += 10;
+
+					pdf.setFontSize(11);
+					pdf.text("Observação:", 10, y);
+
+					y += 6;
+
+					pdf.setFontSize(10);
+
+					const largura = 180;
+					const linhas = pdf.splitTextToSize(observacao, largura);
+
+					pdf.text(linhas, 10, y);
+
+					y += linhas.length * 5;
+				}
+
 				// ================= ASSINATURAS =================
 				y += 15;
 				pdf.line(10, y, 90, y);
