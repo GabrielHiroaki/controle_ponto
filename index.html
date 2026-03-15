@@ -1345,6 +1345,12 @@
 				// ================= OBSERVAÇÃO =================
 				if(observacao){
 
+					// se estiver no final da página cria nova página
+					if(y > 250){
+						pdf.addPage();
+						y = 20;
+					}
+
 					y += 10;
 
 					pdf.setFontSize(11);
