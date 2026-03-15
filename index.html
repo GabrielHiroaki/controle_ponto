@@ -235,7 +235,7 @@
 					font-size:14px;
 					resize:vertical;
 				"
-				oninput="salvarObservacao()"
+				oninput="debounceObservacao()"
 			></textarea>
 
 			<hr>
@@ -321,6 +321,12 @@
             const nomeFeriado = document.getElementById("nomeFeriado");
             const listaFeriados = document.getElementById("listaFeriados");
 			let timerSalvar;
+
+			let timerObservacao;
+			function debounceObservacao(){
+				clearTimeout(timerObservacao);
+				timerObservacao = setTimeout(salvarObservacao,400);
+			}
 			
 			/* ========= FERIADOS AUTOMÁTICOS ========= */
 			function feriadosAutomaticos(ano){
@@ -490,10 +496,9 @@
 
 				gerarTabela();
 				await carregar();
+				await carregarObservacao();
 				marcarFeriados();
 				soma();
-
-				await carregarObservacao();
 			}
 			
 			funcSel.addEventListener("change", atualizarTabela);
@@ -1371,10 +1376,10 @@
                     return;
                 }
 
-                if(funcSel.options.length > 1){
-                    funcSel.selectedIndex = 1;
-                    atualizarTabela();
-                }
+				if(funcSel.options.length > 1){
+					funcSel.selectedIndex = 1;
+					await atualizarTabela();
+				}
             }
 
             window.addEventListener("load", atualizarUltimoBackup);
