@@ -219,6 +219,26 @@
 			<button onclick="addFeriado()">Adicionar</button>
 			<ul id="listaFeriados"></ul>
 			<hr>
+			<h3>📝 Observação</h3>
+
+			<textarea
+				id="observacao"
+				placeholder="Ex: Funcionário recebeu auxílio de R$200 neste mês..."
+				style="
+					width:100%;
+					min-height:80px;
+					background:#020617;
+					color:#e5e7eb;
+					border:1px solid #1f2933;
+					border-radius:8px;
+					padding:10px;
+					font-size:14px;
+					resize:vertical;
+				"
+				oninput="salvarObservacao()"
+			></textarea>
+
+			<hr>
 			<div id="ultimoBackup" style="
 				margin-bottom:10px;
 				font-size:14px;
@@ -461,18 +481,20 @@
 			let anoAtual = new Date().getFullYear();
 			anoSel.value = anoAtual >= anoInicial ? anoAtual : anoInicial;
 			
-            async function atualizarTabela() {
-                if (!funcSel.value) {
-                    tabelaBox.style.display = "none";
-                    return;
-                }
+			async function atualizarTabela() {
+				if (!funcSel.value) {
+					tabelaBox.style.display = "none";
+					document.getElementById("observacao").value="";
+					return;
+				}
 
-                gerarTabela();
-                await carregar();
-                marcarFeriados();
-                soma();
-            }
+				gerarTabela();
+				await carregar();
+				marcarFeriados();
+				soma();
 
+				await carregarObservacao();
+			}
 			
 			funcSel.addEventListener("change", atualizarTabela);
 			mesSel.addEventListener("change", atualizarTabela);
@@ -826,6 +848,53 @@
             }
 
             }
+
+			async function salvarObservacao(){
+
+				if(!funcSel.value) return;
+
+				const texto = document.getElementById("observacao").value;
+
+				const ref = doc(
+					db,
+					"observacoes",
+					`${funcSel.value}_${mesSel.value}_${anoSel.value}`
+				);
+
+				await setDoc(ref,{
+					funcionario: funcSel.value,
+					mes: mesSel.value,
+					ano: anoSel.value,
+					texto: texto,
+					atualizado: Date.now()
+				});
+			}
+
+			async function carregarObservacao(){
+
+				const campo = document.getElementById("observacao");
+
+				if(!funcSel.value){
+					campo.value="";
+					return;
+				}
+
+				const ref = doc(
+					db,
+					"observacoes",
+					`${funcSel.value}_${mesSel.value}_${anoSel.value}`
+				);
+
+				const snap = await getDoc(ref);
+
+				if(!snap.exists()){
+					campo.value="";
+					return;
+				}
+
+				campo.value = snap.data().texto || "";
+			}
+
             async function carregar(){
                 if(!funcSel.value) return;
 
