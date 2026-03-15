@@ -1333,15 +1333,17 @@
 				// ================= TOTAIS =================
 				y += 8;
 				pdf.setFontSize(10);
+
+				// linha 1
 				pdf.text(`Total do mês: ${tTotal.innerText}`, 10, y);
+				pdf.text(`Horas Extra 50%: ${t50.innerText}`, 80, y);
+				pdf.text(`Horas Extra 100%: ${t100.innerText}`, 150, y);
+
 				y += 6;
-				pdf.text(`Horas Extra 50%: ${t50.innerText}`, 10, y);
-				y += 6;
-				pdf.text(`Horas Extra 100%: ${t100.innerText}`, 10, y);
-				y += 6;
+
+				// linha 2
 				pdf.text(`Faltas no mês: ${totalFaltas}`, 10, y);
-				y += 6;
-				pdf.text(`Quantidade de atestados: ${totalAtestados}`, 10, y);
+				pdf.text(`Atestados: ${totalAtestados}`, 80, y);
 			
 				// ================= OBSERVAÇÃO =================
 
