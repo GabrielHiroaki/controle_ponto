@@ -806,7 +806,12 @@
             soma();
 			}
 			function zera(tr){tr.querySelectorAll(".tot,.e50,.e100").forEach(x=>x.innerText="00:00");}
-			function fmt(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
+			function fmt(m){
+				m = Math.round(m); 
+			
+				return String(Math.floor(m/60)).padStart(2,"0") + ":" +
+					   String(m % 60).padStart(2,"0");
+			}
 
 			function calcularDSRSeparado(min50, min100){
 			    const ano = Number(anoSel.value);
