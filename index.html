@@ -617,6 +617,7 @@
 			<td class="tot">00:00</td>
 			<td class="e50">00:00</td>
 			<td class="e100">00:00</td>
+			<td class="dsr">00:00</td>
 			
 			<td>
 				<input type="text" placeholder="Justificativa" oninput="salvar()">
@@ -807,37 +808,40 @@
 			function zera(tr){tr.querySelectorAll(".tot,.e50,.e100").forEach(x=>x.innerText="00:00");}
 			function fmt(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
 
-			function calcularDSR(totalExtrasMinutos){
-				const ano = Number(anoSel.value);
-				const mes = Number(mesSel.value);
+			function calcularDSRSeparado(min50, min100){
+			    const ano = Number(anoSel.value);
+			    const mes = Number(mesSel.value);
 			
-				let diasUteis = 0;
-				let diasDescanso = 0;
+			    let diasUteis = 0;
+			    let diasDescanso = 0;
 			
-				let totalDias = new Date(ano, mes + 1, 0).getDate();
+			    let totalDias = new Date(ano, mes + 1, 0).getDate();
 			
-				for(let d=1; d<=totalDias; d++){
-					let data = new Date(ano, mes, d);
-					let dow = data.getDay();
+			    for(let d=1; d<=totalDias; d++){
+			        let data = new Date(ano, mes, d);
+			        let dow = data.getDay();
 			
-					let dataStr =
-						ano + "-" +
-						String(mes + 1).padStart(2,"0") + "-" +
-						String(d).padStart(2,"0");
+			        let dataStr =
+			            ano + "-" +
+			            String(mes + 1).padStart(2,"0") + "-" +
+			            String(d).padStart(2,"0");
 			
-					let isFeriado = feriadosDoAnoSelecionado()
-						.some(f => f.data === dataStr);
+			        let isFeriado = feriadosDoAnoSelecionado()
+			            .some(f => f.data === dataStr);
 			
-					if(dow === 0 || isFeriado){
-						diasDescanso++;
-					}else{
-						diasUteis++;
-					}
-				}
+			        if(dow === 0 || isFeriado){
+			            diasDescanso++;
+			        }else{
+			            diasUteis++;
+			        }
+			    }
 			
-				if(diasUteis === 0) return 0;
+			    if(diasUteis === 0) return {dsr50:0, dsr100:0};
 			
-				return (totalExtrasMinutos / diasUteis) * diasDescanso;
+			    return {
+			        dsr50: (min50 / diasUteis) * diasDescanso,
+			        dsr100: (min100 / diasUteis) * diasDescanso
+			    };
 			}
 			
 			/* TOTAIS */
@@ -859,16 +863,15 @@
 			        b+=h*60+m*1;
 			    });
 			
-			    // TOTAL EXTRAS
-			    let totalExtras = a + b;
+			    // DSR SEPARADO
+			    let {dsr50, dsr100} = calcularDSRSeparado(a, b);
 			
-			    // CALCULA DSR
-			    let dsr = calcularDSR(totalExtras);
+			    let totalDSR = dsr50 + dsr100;
 			
 			    tTotal.innerText = fmt(t);
 			    t50.innerText = fmt(a);
 			    t100.innerText = fmt(b);
-			    tDSR.innerText = fmt(dsr); 
+			    tDSR.innerText = fmt(totalDSR);
 			}
 			
 			/* SALVAR */
@@ -1263,7 +1266,10 @@
                     "📦 Último backup: " + formatado;
             }
 
-
+			function toMin(hhmm){
+			    let [h,m] = hhmm.split(":");
+			    return h*60 + m*1;
+			}
 			
 			/* chama ao abrir sistema */
 			atualizarUltimoBackup();
@@ -1399,7 +1405,17 @@
 				
 				y += 6;
 				
-				pdf.text(`DSR (Extras): ${tDSR.innerText}`, 10, y);
+				let {dsr50, dsr100} = calcularDSRSeparado(
+				    toMin(t50.innerText),
+				    toMin(t100.innerText)
+				);
+				
+				pdf.text(`DSR 50%: ${fmt(dsr50)}`, 10, y);
+				pdf.text(`DSR 100%: ${fmt(dsr100)}`, 80, y);
+				
+				y += 6;
+				
+				pdf.text(`DSR Total: ${fmt(dsr50 + dsr100)}`, 10, y);
 
 				// linha 2
 				pdf.text(`Faltas no mês: ${totalFaltas}`, 10, y);
