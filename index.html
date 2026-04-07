@@ -265,6 +265,7 @@
 						<th>Total</th>
 						<th>50%</th>
 						<th>100%</th>
+						<th>DSR</th>
 						<th>Justificativa</th>
 					</tr>
 				</thead>
@@ -275,6 +276,7 @@
 						<td id="tTotal">00:00</td>
 						<td id="t50">00:00</td>
 						<td id="t100">00:00</td>
+						<td id="tDSR">00:00</td>
 					</tr>
 				</tfoot>
 			</table>
@@ -316,6 +318,7 @@
             const tTotal = document.getElementById("tTotal");
             const t50 = document.getElementById("t50");
             const t100 = document.getElementById("t100");
+			const tDSR = document.getElementById("tDSR");
             const novoFunc = document.getElementById("novoFunc");
             const feriado = document.getElementById("feriado");
             const nomeFeriado = document.getElementById("nomeFeriado");
@@ -803,14 +806,69 @@
 			}
 			function zera(tr){tr.querySelectorAll(".tot,.e50,.e100").forEach(x=>x.innerText="00:00");}
 			function fmt(m){return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0");}
+
+			function calcularDSR(totalExtrasMinutos){
+				const ano = Number(anoSel.value);
+				const mes = Number(mesSel.value);
+			
+				let diasUteis = 0;
+				let diasDescanso = 0;
+			
+				let totalDias = new Date(ano, mes + 1, 0).getDate();
+			
+				for(let d=1; d<=totalDias; d++){
+					let data = new Date(ano, mes, d);
+					let dow = data.getDay();
+			
+					let dataStr =
+						ano + "-" +
+						String(mes + 1).padStart(2,"0") + "-" +
+						String(d).padStart(2,"0");
+			
+					let isFeriado = feriadosDoAnoSelecionado()
+						.some(f => f.data === dataStr);
+			
+					if(dow === 0 || isFeriado){
+						diasDescanso++;
+					}else{
+						diasUteis++;
+					}
+				}
+			
+				if(diasUteis === 0) return 0;
+			
+				return (totalExtrasMinutos / diasUteis) * diasDescanso;
+			}
 			
 			/* TOTAIS */
 			function soma(){
-			let t=0,a=0,b=0;
-			document.querySelectorAll(".tot").forEach(x=>{let[h,m]=x.innerText.split(":");t+=h*60+m*1});
-			document.querySelectorAll(".e50").forEach(x=>{let[h,m]=x.innerText.split(":");a+=h*60+m*1});
-			document.querySelectorAll(".e100").forEach(x=>{let[h,m]=x.innerText.split(":");b+=h*60+m*1});
-			tTotal.innerText=fmt(t); t50.innerText=fmt(a); t100.innerText=fmt(b);
+			    let t=0,a=0,b=0;
+			
+			    document.querySelectorAll(".tot").forEach(x=>{
+			        let[h,m]=x.innerText.split(":");
+			        t+=h*60+m*1;
+			    });
+			
+			    document.querySelectorAll(".e50").forEach(x=>{
+			        let[h,m]=x.innerText.split(":");
+			        a+=h*60+m*1;
+			    });
+			
+			    document.querySelectorAll(".e100").forEach(x=>{
+			        let[h,m]=x.innerText.split(":");
+			        b+=h*60+m*1;
+			    });
+			
+			    // TOTAL EXTRAS
+			    let totalExtras = a + b;
+			
+			    // CALCULA DSR
+			    let dsr = calcularDSR(totalExtras);
+			
+			    tTotal.innerText = fmt(t);
+			    t50.innerText = fmt(a);
+			    t100.innerText = fmt(b);
+			    tDSR.innerText = fmt(dsr); 
 			}
 			
 			/* SALVAR */
@@ -1336,10 +1394,12 @@
 
 				// linha 1
 				pdf.text(`Total do mês: ${tTotal.innerText}`, 10, y);
-				pdf.text(`Horas Extra 50%: ${t50.innerText}`, 80, y);
-				pdf.text(`Horas Extra 100%: ${t100.innerText}`, 150, y);
-
+				pdf.text(`Extra 50%: ${t50.innerText}`, 70, y);
+				pdf.text(`Extra 100%: ${t100.innerText}`, 130, y);
+				
 				y += 6;
+				
+				pdf.text(`DSR (Extras): ${tDSR.innerText}`, 10, y);
 
 				// linha 2
 				pdf.text(`Faltas no mês: ${totalFaltas}`, 10, y);
