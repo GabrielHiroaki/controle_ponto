@@ -427,7 +427,9 @@
 				}
 				
 				// BASE IRRF (desconta INSS)
-				let baseIRRF = totalProventos - inss;
+				let baseIRRF = (totalProventos - inss) - 528; // desconto simplificado
+				
+				if (baseIRRF < 0) baseIRRF = 0;
 				
 				// CÁLCULO IRRF (tabela atual)
 				let irrf = 0;
