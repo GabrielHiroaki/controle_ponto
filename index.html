@@ -280,6 +280,13 @@
 					</tr>
 				</tfoot>
 			</table>
+			<div id="holerite" style="
+			    margin-top:20px;
+			    padding:15px;
+			    border:1px solid #1f2933;
+			    border-radius:10px;
+			    background:#020617;
+			"></div>
 		</div>
         <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
@@ -363,6 +370,74 @@
 				tTotal.innerText = "00:00";
 				t50.innerText = "00:00";
 				t100.innerText = "00:00";
+			}
+
+			function calcularFinanceiro(){
+			
+			    // 🔹 CONFIG (você pode depois puxar do funcionário)
+			    const salarioBase = 1621;
+			    const insalubridade = salarioBase * 0.20; // 20%
+			
+			    const base = salarioBase + insalubridade;
+			
+			    const valorHora = base / 220;
+			
+			    // pega horas
+			    let h50 = toMin(t50.innerText) / 60;
+			    let h100 = toMin(t100.innerText) / 60;
+			
+			    // valores
+			    let valor50 = h50 * valorHora * 1.5;
+			    let valor100 = h100 * valorHora * 2;
+			
+			    // DSR separado
+			    let {dsr50, dsr100} = calcularDSRSeparado(
+			        toMin(t50.innerText),
+			        toMin(t100.innerText)
+			    );
+			
+			    let valorDSR50 = (dsr50/60) * valorHora * 1.5;
+			    let valorDSR100 = (dsr100/60) * valorHora * 2;
+			
+			    let totalProventos =
+			        salarioBase +
+			        insalubridade +
+			        valor50 +
+			        valor100 +
+			        valorDSR50 +
+			        valorDSR100;
+			
+			    return {
+			        salarioBase,
+			        insalubridade,
+			        valor50,
+			        valor100,
+			        valorDSR50,
+			        valorDSR100,
+			        totalProventos
+			    };
+			}
+
+			function renderHolerite(){
+			
+				const h = calcularFinanceiro();
+			
+				document.getElementById("holerite").innerHTML = `
+					<h3>💰 Resumo (tipo holerite)</h3>
+			
+					Salário Base: R$ ${h.salarioBase.toFixed(2)} <br>
+					Insalubridade: R$ ${h.insalubridade.toFixed(2)} <br><br>
+			
+					Hora Extra 50%: R$ ${h.valor50.toFixed(2)} <br>
+					Hora Extra 100%: R$ ${h.valor100.toFixed(2)} <br><br>
+			
+					DSR 50%: R$ ${h.valorDSR50.toFixed(2)} <br>
+					DSR 100%: R$ ${h.valorDSR100.toFixed(2)} <br><br>
+			
+					<hr>
+			
+					<b>Total a Receber: R$ ${h.totalProventos.toFixed(2)}</b>
+				`;
 			}
 			
 			/* FUNCIONÁRIOS */
@@ -877,6 +952,8 @@
 			    t50.innerText = fmt(a);
 			    t100.innerText = fmt(b);
 			    tDSR.innerText = fmt(totalDSR);
+
+				renderHolerite();
 			}
 			
 			/* SALVAR */
