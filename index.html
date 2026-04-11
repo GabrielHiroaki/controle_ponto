@@ -413,8 +413,9 @@
 				if (salario <= 1412) {
 				    inss = salario * 0.075;
 				} else if (salario <= 2666.68) {
-				    inss = (1412 * 0.075) +
-				           ((salario - 1412) * 0.09);
+				    inss =
+				        (1412 * 0.075).toFixed(2) * 1 +
+				        ((salario - 1412) * 0.09).toFixed(2) * 1;
 				} else if (salario <= 4000.03) {
 				    inss = (1412 * 0.075) +
 				           ((2666.68 - 1412) * 0.09) +
