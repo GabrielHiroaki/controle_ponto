@@ -426,8 +426,29 @@
 				           ((salario - 4000.03) * 0.14);
 				}
 				
-				// líquido
-				let salarioLiquido = totalProventos - inss;
+				// BASE IRRF (desconta INSS)
+				let baseIRRF = totalProventos - inss;
+				
+				// CÁLCULO IRRF (tabela atual)
+				let irrf = 0;
+				
+				if (baseIRRF <= 2112) {
+				    irrf = 0;
+				} else if (baseIRRF <= 2826.65) {
+				    irrf = (baseIRRF * 0.075) - 158.40;
+				} else if (baseIRRF <= 3751.05) {
+				    irrf = (baseIRRF * 0.15) - 370.40;
+				} else if (baseIRRF <= 4664.68) {
+				    irrf = (baseIRRF * 0.225) - 651.73;
+				} else {
+				    irrf = (baseIRRF * 0.275) - 884.96;
+				}
+				
+				// evita negativo
+				if (irrf < 0) irrf = 0;
+				
+				// líquido FINAL
+				let salarioLiquido = totalProventos - inss - irrf;
 				return {
 				    salarioBase,
 				    insalubridade,
@@ -437,6 +458,7 @@
 				    valorDSR100,
 				    totalProventos,
 				    inss,
+				    irrf, 
 				    salarioLiquido
 				};
 			}
@@ -446,7 +468,7 @@
 				const h = calcularFinanceiro();
 			
 				document.getElementById("holerite").innerHTML = `
-					<h3>💰 Resumo (tipo holerite)</h3>
+					<h3>💰 Resumo </h3>
 			
 					Salário Base: R$ ${h.salarioBase.toFixed(2)} <br>
 					Insalubridade: R$ ${h.insalubridade.toFixed(2)} <br><br>
@@ -460,7 +482,8 @@
 					<hr>
 					
 					<b>Total Bruto: R$ ${h.totalProventos.toFixed(2)}</b><br>
-					INSS: - R$ ${h.inss.toFixed(2)} <br><br>
+					INSS: - R$ ${h.inss.toFixed(2)} <br>
+					IRRF: - R$ ${h.irrf.toFixed(2)} <br><br>
 					
 					<b style="color:#22c55e">
 					    Salário Líquido: R$ ${h.salarioLiquido.toFixed(2)}
