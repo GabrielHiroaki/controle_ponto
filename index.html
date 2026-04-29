@@ -237,6 +237,25 @@
 				"
 				oninput="debounceObservacao()"
 			></textarea>
+			<h3>💸 Gratificações</h3>
+			<input id="descGrat" placeholder="Ex: Produtividade">
+			<input id="valorGrat" type="number" step="0.01" placeholder="Valor">
+			<button onclick="addGratificacao()">Adicionar</button>
+			<table id="tabelaGrat">
+				<thead>
+					<tr>
+					<thead>
+						<tr>
+							<th>Descrição</th>
+							<th>Valor (R$)</th>
+							<th>Ações</th>
+						</tr>
+					</thead>
+					</tr>
+				</thead>
+				<tbody id="listaGrat"></tbody>
+			</table>
+
 
 			<hr>
 			<div id="ultimoBackup" style="
@@ -290,9 +309,8 @@
 		</div>
         <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, getDocs , deleteDoc} 
-        from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs , deleteDoc} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+		import { onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
         const firebaseConfig = {
         apiKey: "AIzaSyAaPQ7grAhv-FqRwLRCgh-e1hvJAr-PJgY",
         authDomain: "controle-ponto-6ef9d.firebaseapp.com",
@@ -314,6 +332,7 @@
         window.collection = collection;
         window.getDocs = getDocs;
         window.deleteDoc = deleteDoc;
+		window.onSnapshot = onSnapshot;
         </script>
 		<script defer>
 			const diasSemana=["DOM","SEG","TER","QUA","QUI","SEX","SÁB"];
@@ -337,7 +356,126 @@
 				clearTimeout(timerObservacao);
 				timerObservacao = setTimeout(salvarObservacao,400);
 			}
-			
+
+			let gratificacoes = [];
+			async function addGratificacao(){
+				if(!funcSel.value) return;
+
+				let desc = document.getElementById("descGrat").value.trim();
+				let valor = parseFloat(document.getElementById("valorGrat").value);
+
+				if(!desc || isNaN(valor)) return;
+
+				gratificacoes.push({ desc, valor });
+
+				await salvarGrat();
+
+				document.getElementById("descGrat").value = "";
+				document.getElementById("valorGrat").value = "";
+			}
+			async function salvarGrat(){
+				const ref = doc(
+					db,
+					"gratificacoes",
+					`${funcSel.value}_${mesSel.value}_${anoSel.value}`
+				);
+
+				await setDoc(ref,{
+					lista: gratificacoes,
+					atualizado: Date.now()
+				});
+			}
+			let unsubGrat;
+
+			function ouvirGratificacao(){
+
+				if(unsubGrat) unsubGrat();
+
+				if(!funcSel.value) return;
+
+				const ref = doc(
+					db,
+					"gratificacoes",
+					`${funcSel.value}_${mesSel.value}_${anoSel.value}`
+				);
+
+				unsubGrat = onSnapshot(ref,(snap)=>{
+					if(snap.exists()){
+						gratificacoes = snap.data().lista || [];
+					}else{
+						gratificacoes = [];
+					}
+
+					renderGrat();
+				});
+			}
+			function renderGrat(){
+				const lista = document.getElementById("listaGrat");
+				lista.innerHTML = "";
+
+				gratificacoes.forEach((g,i)=>{
+					lista.innerHTML += `
+						<tr data-index="${i}">
+							<td contenteditable="true" class="edit-desc">${g.desc}</td>
+							<td contenteditable="true" class="edit-valor">${g.valor.toFixed(2)}</td>
+							<td>
+								<button onclick="removerGrat(${i})">🗑</button>
+							</td>
+						</tr>
+					`;
+				});
+
+				// 👇 SALVAR AUTOMÁTICO AO SAIR DA CÉLULA
+				document.querySelectorAll("#listaGrat td[contenteditable]").forEach(td=>{
+					td.addEventListener("blur", async (e)=>{
+						const tr = e.target.closest("tr");
+						const i = tr.dataset.index;
+
+						let novaDesc = tr.querySelector(".edit-desc").innerText.trim();
+						let novoValor = parseFloat(tr.querySelector(".edit-valor").innerText.replace(",", "."));
+
+						if(!novaDesc || isNaN(novoValor)){
+							alert("Valor inválido!");
+							renderGrat();
+							return;
+						}
+
+						gratificacoes[i].desc = novaDesc;
+						gratificacoes[i].valor = novoValor;
+
+						await salvarGrat();
+					});
+				});
+
+				// 👇 REMOVER COM DELETE
+				document.querySelectorAll("#listaGrat tr").forEach(tr=>{
+					tr.addEventListener("keydown",(e)=>{
+						if(e.key === "Delete"){
+							const i = tr.dataset.index;
+							removerGrat(i);
+						}
+					});
+				});
+
+				renderHolerite();
+			}
+
+			async function removerGrat(i){
+				gratificacoes.splice(i,1);
+				await salvarGrat();
+			}
+
+			async function editarGrat(i){
+				let novoDesc = prompt("Editar descrição:", gratificacoes[i].desc);
+				let novoValor = prompt("Editar valor:", gratificacoes[i].valor);
+
+				if(!novoDesc || isNaN(novoValor)) return;
+
+				gratificacoes[i].desc = novoDesc;
+				gratificacoes[i].valor = parseFloat(novoValor);
+
+				await salvarGrat();
+			}
 			/* ========= FERIADOS AUTOMÁTICOS ========= */
 			function feriadosAutomaticos(ano){
 				return [
@@ -396,14 +534,16 @@
 			
 			    let valorDSR50 = (dsr50/60) * valorHora * 1.5;
 			    let valorDSR100 = (dsr100/60) * valorHora * 2;
-			
+				
+				let totalGrat = gratificacoes.reduce((s,g)=>s+g.valor,0);
 			    let totalProventos =
 			        salarioBase +
 			        insalubridade +
 			        valor50 +
 			        valor100 +
 			        valorDSR50 +
-			        valorDSR100;
+			        valorDSR100 +
+					totalGrat;
 				// INSS
 				let inss = 0;
 				let salario = totalProventos;
@@ -457,6 +597,7 @@
 				    valor100,
 				    valorDSR50,
 				    valorDSR100,
+					totalGrat,
 				    totalProventos,
 				    inss,
 				    irrf, 
@@ -467,7 +608,9 @@
 			function renderHolerite(){
 			
 				const h = calcularFinanceiro();
-			
+				let listaGratHTML = gratificacoes.map(g => 
+					`Gratificações (${g.desc}): R$ ${g.valor.toFixed(2)}`
+				).join("<br>");
 				document.getElementById("holerite").innerHTML = `
 					<h3>💰 Resumo </h3>
 			
@@ -481,7 +624,8 @@
 					DSR 100%: R$ ${h.valorDSR100.toFixed(2)} <br><br>
 			
 					<hr>
-					
+					${listaGratHTML || "Gratificações: R$ 0.00"} <br><br>
+
 					<b>Total Bruto: R$ ${h.totalProventos.toFixed(2)}</b><br>
 					INSS: - R$ ${h.inss.toFixed(2)} <br>
 					IRRF: - R$ ${h.irrf.toFixed(2)} <br><br>
@@ -627,6 +771,7 @@
 				gerarTabela();
 				await carregar();
 				await carregarObservacao();
+				ouvirGratificacao();
 				marcarFeriados();
 				soma();
 			}
@@ -1422,7 +1567,7 @@
 				// TÍTULO
 				pdf.setFontSize(16);
 				pdf.text("FOLHA DE PONTO", 105, y, { align: "center" });
-				y += 10;
+				y += 6;
 			
 				// DADOS
 				pdf.setFontSize(10);
@@ -1434,7 +1579,7 @@
 				y += 8;
 			
 				// CABEÇALHO DA TABELA
-				pdf.setFontSize(9);
+				pdf.setFontSize(8);
 				pdf.setDrawColor(0);
 				pdf.setLineWidth(0.3);
 			
@@ -1451,7 +1596,7 @@
 			
 				// ================= LINHAS =================
 				document.querySelectorAll("#tabela tr").forEach(tr=>{
-					if(y > 270){
+					if(y > 285){
 						pdf.addPage();
 						y = 20;
 					}
@@ -1552,31 +1697,49 @@
 				pdf.text(`Faltas no mês: ${totalFaltas}`, 10, y);
 				pdf.text(`Atestados: ${totalAtestados}`, 70, y);
 			
-				// ================= OBSERVAÇÃO =================
+				// ================= OBS + GRAT (LADO A LADO) =================
 
 				if(y > 250){
 					pdf.addPage();
 					y = 20;
 				}
 
-				y += 10;
+				y += 6;
 
 				pdf.setFontSize(11);
 				pdf.text("Observação:", 10, y);
+				pdf.text("Gratificações:", 110, y);
 
 				y += 6;
 
 				pdf.setFontSize(10);
 
+				// OBSERVAÇÃO (ESQUERDA)
 				const textoObs = observacao && observacao.trim() !== "" ? observacao : "-";
+				const obsLinhas = pdf.splitTextToSize(textoObs, 90);
 
-				const largura = 180;
-				const linhas = pdf.splitTextToSize(textoObs, largura);
+				// GRATIFICAÇÕES (DIREITA)
+				let gratTexto = "-";
+				if(gratificacoes.length > 0){
+					gratTexto = gratificacoes
+						.map(g => `(${g.desc}): R$ ${g.valor.toFixed(2)}`)
+						.join("\n");
+				}
+				const gratLinhas = pdf.splitTextToSize(gratTexto, 90);
 
-				pdf.text(linhas, 10, y);
+				// ALTURA MÁXIMA ENTRE OS DOIS
+				const maxLinhas = Math.max(obsLinhas.length, gratLinhas.length);
 
-				y += linhas.length * 5;
-
+				// RENDER LADO A LADO
+				for(let i = 0; i < maxLinhas; i++){
+					if(obsLinhas[i]){
+						pdf.text(obsLinhas[i], 10, y);
+					}
+					if(gratLinhas[i]){
+						pdf.text(gratLinhas[i], 110, y);
+					}
+					y += 5;
+				}
 				// ================= ASSINATURAS =================
 				y += 15;
 				pdf.line(10, y, 90, y);
