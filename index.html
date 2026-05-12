@@ -614,14 +614,13 @@
 				document.getElementById("holerite").innerHTML = `
 					<h3>💰 Resumo </h3>
 			
-					Salário Base: R$ ${h.salarioBase.toFixed(2)} <br>
-					Insalubridade: R$ ${h.insalubridade.toFixed(2)} <br><br>
+					Horas Normais: R$ ${h.salarioBase.toFixed(2)} <br>
+					Adicional Insalubridade: R$ ${h.insalubridade.toFixed(2)} <br><br>
 			
 					Hora Extra 50%: R$ ${h.valor50.toFixed(2)} <br>
 					Hora Extra 100%: R$ ${h.valor100.toFixed(2)} <br><br>
-			
-					DSR 50%: R$ ${h.valorDSR50.toFixed(2)} <br>
-					DSR 100%: R$ ${h.valorDSR100.toFixed(2)} <br><br>
+	
+					Repouso Remunerado Sobe Horas Extras: R$ ${(h.valorDSR50 + h.valorDSR100).toFixed(2)}<br>
 			
 					<hr>
 					${listaGratHTML || "Gratificações: R$ 0.00"} <br><br>
