@@ -509,10 +509,12 @@
 				t50.innerText = "00:00";
 				t100.innerText = "00:00";
 			}
-
+			function round2(v){
+			    return Math.round(v * 100) / 100;
+			}
 			function calcularFinanceiro(){
 			    const salarioBase = 1621;
-			    const insalubridade = salarioBase * 0.20; // 20%
+			    const insalubridade = round2(salarioBase * 0.20);
 			
 			    const base = salarioBase + insalubridade;
 			
@@ -522,28 +524,29 @@
 			    let h50 = toMin(t50.innerText) / 60;
 			    let h100 = toMin(t100.innerText) / 60;
 			
-			    // valores
-			    let valor50 = h50 * valorHora * 1.5;
-			    let valor100 = h100 * valorHora * 2;
-			
-			    // DSR separado
-			    let {dsr50, dsr100} = calcularDSRSeparado(
-			        toMin(t50.innerText),
-			        toMin(t100.innerText)
-			    );
-			
-			    let valorDSR50 = (dsr50/60) * valorHora * 1.5;
-			    let valorDSR100 = (dsr100/60) * valorHora * 2;
+				// valores
+				let valor50 = round2(h50 * valorHora * 1.5);
+				let valor100 = round2(h100 * valorHora * 2);
+				
+				// DSR separado
+				let {dsr50, dsr100} = calcularDSRSeparado(
+				    toMin(t50.innerText),
+				    toMin(t100.innerText)
+				);
+				
+				let valorDSR50 = round2((dsr50/60) * valorHora * 1.5);
+				let valorDSR100 = round2((dsr100/60) * valorHora * 2);
 				
 				let totalGrat = gratificacoes.reduce((s,g)=>s+g.valor,0);
-			    let totalProventos =
-			        salarioBase +
-			        insalubridade +
-			        valor50 +
-			        valor100 +
-			        valorDSR50 +
-			        valorDSR100 +
-					totalGrat;
+				let totalProventos = round2(
+				    salarioBase +
+				    insalubridade +
+				    valor50 +
+				    valor100 +
+				    valorDSR50 +
+				    valorDSR100 +
+				    totalGrat
+				);
 				// ================= INSS =================
 				let salario = totalProventos;
 				let inss = 0;
@@ -579,7 +582,7 @@
 				    inss = tetoINSS;
 				}
 
-				inss = Number(inss.toFixed(2));
+				inss = round2(inss);
 
 				// ================= IRRF =================
 
