@@ -547,64 +547,79 @@
 				// ================= INSS =================
 				let salario = totalProventos;
 				let inss = 0;
-				
-				// Faixas INSS
+
+				// Tabela INSS 2025/2026
 				const faixas = [
 				    { limite: 1518.00, aliquota: 0.075 },
 				    { limite: 2793.88, aliquota: 0.09 },
 				    { limite: 4190.83, aliquota: 0.12 },
 				    { limite: 8157.41, aliquota: 0.14 }
 				];
-				
+
 				let anterior = 0;
-				
+
 				for (const faixa of faixas) {
-				
+
 				    if (salario > faixa.limite) {
-				
-				        // arredonda cada faixa
-				        inss += Number(
-				            ((faixa.limite - anterior) * faixa.aliquota)
-				            .toFixed(2)
-				        );
-				
+
+				        inss += (faixa.limite - anterior) * faixa.aliquota;
 				        anterior = faixa.limite;
-				
+
 				    } else {
-				
-				        inss += Number(
-				            ((salario - anterior) * faixa.aliquota)
-				            .toFixed(2)
-				        );
-				
+
+				        inss += (salario - anterior) * faixa.aliquota;
 				        break;
 				    }
 				}
-				
-				inss = Number(inss.toFixed(2));
-				
-				// BASE IRRF (desconta INSS)
-				let baseIRRF = (totalProventos - inss) - 528; // desconto simplificado
-				
-				if (baseIRRF < 0) baseIRRF = 0;
-				
-				// CÁLCULO IRRF (tabela atual)
-				let irrf = 0;
-				
-				if (baseIRRF <= 2112) {
-				    irrf = 0;
-				} else if (baseIRRF <= 2826.65) {
-				    irrf = (baseIRRF * 0.075) - 158.40;
-				} else if (baseIRRF <= 3751.05) {
-				    irrf = (baseIRRF * 0.15) - 370.40;
-				} else if (baseIRRF <= 4664.68) {
-				    irrf = (baseIRRF * 0.225) - 651.73;
-				} else {
-				    irrf = (baseIRRF * 0.275) - 884.96;
+
+				// teto máximo INSS
+				const tetoINSS = 951.63;
+
+				if (inss > tetoINSS) {
+				    inss = tetoINSS;
 				}
-				
-				// evita negativo
-				if (irrf < 0) irrf = 0;
+
+				inss = Number(inss.toFixed(2));
+
+				// ================= IRRF =================
+
+				// desconto simplificado mensal
+				let baseIRRF = (totalProventos - inss) - 528;
+
+				if (baseIRRF < 0) {
+				    baseIRRF = 0;
+				}
+
+				let irrf = 0;
+
+				// Tabela IRRF atualizada
+				if (baseIRRF <= 2259.20) {
+
+				    irrf = 0;
+
+				} else if (baseIRRF <= 2826.65) {
+
+				    irrf = (baseIRRF * 0.075) - 169.44;
+
+				} else if (baseIRRF <= 3751.05) {
+
+				    irrf = (baseIRRF * 0.15) - 381.44;
+
+				} else if (baseIRRF <= 4664.68) {
+
+				    irrf = (baseIRRF * 0.225) - 662.77;
+
+				} else {
+
+				    irrf = (baseIRRF * 0.275) - 896.00;
+				}
+
+				// evita IRRF negativo
+				if (irrf < 0) {
+				    irrf = 0;
+				}
+
+				irrf = Number(irrf.toFixed(2));
 				
 				// líquido FINAL
 				let salarioLiquido = totalProventos - inss - irrf;
