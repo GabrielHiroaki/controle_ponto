@@ -548,7 +548,7 @@
 				let salario = totalProventos;
 				let inss = 0;
 				
-				// Faixas INSS 2025
+				// Faixas INSS
 				const faixas = [
 				    { limite: 1518.00, aliquota: 0.075 },
 				    { limite: 2793.88, aliquota: 0.09 },
@@ -561,15 +561,26 @@
 				for (const faixa of faixas) {
 				
 				    if (salario > faixa.limite) {
-				        inss += (faixa.limite - anterior) * faixa.aliquota;
+				
+				        // arredonda cada faixa
+				        inss += Number(
+				            ((faixa.limite - anterior) * faixa.aliquota)
+				            .toFixed(2)
+				        );
+				
 				        anterior = faixa.limite;
+				
 				    } else {
-				        inss += (salario - anterior) * faixa.aliquota;
+				
+				        inss += Number(
+				            ((salario - anterior) * faixa.aliquota)
+				            .toFixed(2)
+				        );
+				
 				        break;
 				    }
 				}
 				
-				// arredonda SOMENTE no final
 				inss = Number(inss.toFixed(2));
 				
 				// BASE IRRF (desconta INSS)
