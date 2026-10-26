@@ -351,6 +351,16 @@
             const listaFeriados = document.getElementById("listaFeriados");
 			let timerSalvar;
 
+			/* ========= TOLERÂNCIA CLT (Art. 58, §1º) ========= */
+			const TOLERANCIA_DIA = 10; // minutos
+
+			// Se a diferença entre o trabalhado e a jornada for de até 10 min (para mais ou para menos),
+			// considera a jornada cheia. Passou de 10 min, vale o tempo real (todo o período).
+			function aplicarTolerancia(tot, carga){
+			    if (Math.abs(tot - carga) <= TOLERANCIA_DIA) return carga;
+			    return tot;
+			}
+
 			let timerObservacao;
 			function debounceObservacao(){
 				clearTimeout(timerObservacao);
@@ -1072,13 +1082,13 @@
 			let e100 = 0;
 			let normal = tot;
 			
-			// DOMINGO → tudo 100%
+			// DOMINGO → tudo 100% (sem tolerância)
 			if (dow === 0) {
 			    e100 = tot;
 			    normal = 0;
 			}
 			
-			// FERIADO → tudo 100%
+			// FERIADO → tudo 100% (sem tolerância)
 			else if (
 			    status === "Feriado" ||
 			    feriadosDoAnoSelecionado().some(f => f.data === dataStr)
@@ -1088,20 +1098,18 @@
 			}
 			
 			
-			// SÁBADO → até 4h normal, resto 50%
+			// SÁBADO (07h às 11h = 4h) → até 4h normal, resto 50% (com tolerância)
 			else if (dow === 6) {
-			    if (tot > 240) {
-			        e50 = tot - 240;
-			        normal = 240;
-			    }
+			    tot = aplicarTolerancia(tot, 240);
+			    normal = Math.min(tot, 240);
+			    e50 = Math.max(0, tot - 240);
 			}
 			
-			// SEGUNDA a SEXTA → até 8h normal, resto 50%
+			// SEGUNDA a SEXTA → até 8h normal, resto 50% (com tolerância)
 			else {
-			    if (tot > 480) {
-			        e50 = tot - 480;
-			        normal = 480;
-			    }
+			    tot = aplicarTolerancia(tot, 480);
+			    normal = Math.min(tot, 480);
+			    e50 = Math.max(0, tot - 480);
 			}
 			
 			tr.querySelector(".tot").innerText = fmt(normal);
