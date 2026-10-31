@@ -191,6 +191,16 @@
 			.total {
 			font-size: 14px;
 			}
+
+			/* INFO: MADRUGADA / EXPEDIENTE / DIF. JORNADA / TOLERÂNCIA */
+			.tag{font-size:11px;padding:3px 8px;border-radius:99px;display:inline-block}
+			.tag.on{background:rgba(34,197,94,.18);color:var(--success)}
+			.tag.off{background:rgba(156,163,175,.12);color:var(--muted)}
+			.pos{color:var(--success)}
+			.neg{color:var(--danger)}
+			.neu{color:var(--muted)}
+			.i-mad,.i-reg,.i-dif{font-weight:600;white-space:nowrap}
+
 			/* RESPONSIVO */
 			@media (max-width: 1200px) {
 			table {
@@ -244,13 +254,9 @@
 			<table id="tabelaGrat">
 				<thead>
 					<tr>
-					<thead>
-						<tr>
-							<th>Descrição</th>
-							<th>Valor (R$)</th>
-							<th>Ações</th>
-						</tr>
-					</thead>
+						<th>Descrição</th>
+						<th>Valor (R$)</th>
+						<th>Ações</th>
 					</tr>
 				</thead>
 				<tbody id="listaGrat"></tbody>
@@ -270,6 +276,7 @@
 			<button onclick="importarBackup()">📥 Importar Backup</button>
 			<button onclick="exportarPDF()">📄 PDF</button>
 			<input type="file" id="fileBackup" accept=".json" style="display:none" onchange="lerBackup(this)">
+			<div style="overflow-x:auto">
 			<table id="tabelaBox" style="display:none">
 				<thead>
 					<tr>
@@ -281,6 +288,10 @@
 						<th>Int. Saída</th>
 						<th>Int. Entrada</th>
 						<th>Saída</th>
+						<th>Madrugada</th>
+						<th>Expediente</th>
+						<th>Dif. jornada</th>
+						<th>Tolerância</th>
 						<th>Total</th>
 						<th>50%</th>
 						<th>100%</th>
@@ -291,7 +302,7 @@
 				<tbody id="tabela"></tbody>
 				<tfoot>
 					<tr class="total">
-						<td colspan="8">Totais</td>
+						<td colspan="12">Totais</td>
 						<td id="tTotal">00:00</td>
 						<td id="t50">00:00</td>
 						<td id="t100">00:00</td>
@@ -299,6 +310,7 @@
 					</tr>
 				</tfoot>
 			</table>
+			</div>
 			<div id="holerite" style="
 			    margin-top:20px;
 			    padding:15px;
@@ -911,7 +923,7 @@
 			/* TABELA */
 			function gerarTabela(){
 			if(!funcSel.value){tabelaBox.style.display="none";return;}
-			tabelaBox.style.display="block"; tabela.innerHTML="";
+			tabelaBox.style.display="table"; tabela.innerHTML="";
 			let dias=new Date(anoSel.value,Number(mesSel.value)+1,0).getDate();
 			for(let d=1;d<=dias;d++){
 			let data=new Date(anoSel.value,mesSel.value,d);
@@ -930,6 +942,11 @@
 			</td>
 			
 			${campo()}${campo()}${campo()}${campo()}${campo()}${campo()}
+			
+			<td class="i-mad">00:00</td>
+			<td class="i-reg">00:00</td>
+			<td class="i-dif neu">—</td>
+			<td class="i-tol"><span class="tag off">—</span></td>
 			
 			<td class="tot">00:00</td>
 			<td class="e50">00:00</td>
@@ -985,6 +1002,31 @@
 			function campo(){return `<td><input type="time" onchange="calc(this)"></td>`;}
 			function m(h){if(!h)return null;let[a,b]=h.split(":");return a*60+b*1;}
 			
+			/* ========= INFO: MADRUGADA / EXPEDIENTE / DIF. JORNADA / TOLERÂNCIA ========= */
+			function fmtSinal(v){
+			    if(v === 0) return "00:00";
+			    return (v > 0 ? "+" : "-") + fmt(Math.abs(v));
+			}
+
+			function preencherInfo(tr, mad, reg, carga, tolerou){
+			    tr.querySelector(".i-mad").innerText = fmt(mad);
+			    tr.querySelector(".i-reg").innerText = fmt(reg);
+
+			    const difEl = tr.querySelector(".i-dif");
+			    if(!carga || reg === 0){
+			        difEl.innerText = "—";
+			        difEl.className = "i-dif neu";
+			    }else{
+			        const dif = reg - carga;
+			        difEl.innerText = fmtSinal(dif);
+			        difEl.className = "i-dif " + (dif > 0 ? "pos" : dif < 0 ? "neg" : "neu");
+			    }
+
+			    tr.querySelector(".i-tol").innerHTML = tolerou
+			        ? `<span class="tag on">aplicada</span>`
+			        : `<span class="tag off">—</span>`;
+			}
+
 			function calc(el){
 			let tr=el.closest("tr");
 			let status=tr.children[1].querySelector("select").value;
@@ -1079,12 +1121,17 @@
 				tr.querySelector(".tot").innerText = fmt(carga);
 				tr.querySelector(".e50").innerText = "00:00";
 				tr.querySelector(".e100").innerText = "00:00";
+
+				preencherInfo(tr, madrugada, regular, 0, false);
 			
                 clearTimeout(timerSalvar);
                 timerSalvar = setTimeout(salvar, 400);
 				soma();
 				return;
 			}
+
+			let cargaInfo = 0;
+			let tolerou = false;
 			let e50 = 0;
 			let e100 = 0;
 			let normal = tot;
@@ -1107,6 +1154,8 @@
 			
 			// SÁBADO (07h às 11h = 4h) → até 4h normal, resto 50% (com tolerância)
 			else if (dow === 6) {
+			    cargaInfo = 240;
+			    tolerou = regular > 0 && regular !== 240 && Math.abs(regular - 240) <= TOLERANCIA_DIA;
 			    tot = aplicarTolerancia(regular, 240) + madrugada;
 			    normal = Math.min(tot, 240);
 			    e50 = Math.max(0, tot - 240);
@@ -1114,6 +1163,8 @@
 			
 			// SEGUNDA a SEXTA → até 8h normal, resto 50% (com tolerância)
 			else {
+			    cargaInfo = 480;
+			    tolerou = regular > 0 && regular !== 480 && Math.abs(regular - 480) <= TOLERANCIA_DIA;
 			    tot = aplicarTolerancia(regular, 480) + madrugada;
 			    normal = Math.min(tot, 480);
 			    e50 = Math.max(0, tot - 480);
@@ -1122,12 +1173,17 @@
 			tr.querySelector(".tot").innerText = fmt(normal);
 			tr.querySelector(".e50").innerText = fmt(e50);
 			tr.querySelector(".e100").innerText = fmt(e100);
+
+			preencherInfo(tr, madrugada, regular, cargaInfo, tolerou);
 			
             clearTimeout(timerSalvar);
             timerSalvar = setTimeout(salvar, 400);
             soma();
 			}
-			function zera(tr){tr.querySelectorAll(".tot,.e50,.e100").forEach(x=>x.innerText="00:00");}
+			function zera(tr){
+				tr.querySelectorAll(".tot,.e50,.e100").forEach(x=>x.innerText="00:00");
+				preencherInfo(tr, 0, 0, 0, false);
+			}
 			function fmt(m){
 				m = Math.round(m); 
 			
@@ -1607,7 +1663,6 @@
 				
 				const { jsPDF } = window.jspdf;
 				const pdf = new jsPDF("p","mm","a4");
-				//alert(document.getElementById("observacao").value);
 				const observacao = document.getElementById("observacao").value.trim();
 			
 				let y = 15;
